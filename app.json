@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "discovering-historical-money",
-    "slug": "discovering-historical-money",
+    "name": "Coin Finder",
+    "slug": "coin-finder",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.coinfinder"
     },
     "web": {
       "output": "static",
