@@ -1,4 +1,3 @@
-import { ThemedText } from "@/app-example/components/themed-text";
 import { Text, View } from "react-native";
 
 export default function Index() {
