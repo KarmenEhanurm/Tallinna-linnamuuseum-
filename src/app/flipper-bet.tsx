@@ -24,6 +24,22 @@ enum CoinSide {
 
 const { width } = Dimensions.get("window");
 
+function BottomArea({ side, predicted }: { side: CoinSide, predicted: CoinSide | null }) {
+    const color = predicted === side ? "green" : "red"
+    return (
+        <View style={{flex: 1, alignItems: "center"}}>
+            <Text style={styles.resultText}>
+                {side === CoinSide.HEADS ? "Kull" : "Kiri"}
+            </Text>
+            {predicted !== null && (
+                <Text style={{color: color}}>
+                    {predicted === side ? "Ennustus läks täppi!" : "Ennustus ei läinud täppi"}
+                </Text>
+            )}
+        </View>
+    )
+}
+
 export default function Flipper() {
     // Initially let's choose the coin's side randomly
     let initialSide = CoinSide.HEADS;
@@ -104,7 +120,6 @@ export default function Flipper() {
         setIsDialogVisible(false);
         // clear stored prediction
         requestAnimationFrame(() => {
-            setPendingPrediction(null);
             flipCoin();
         });
     };
@@ -149,10 +164,8 @@ export default function Flipper() {
             {/* bottom area holds the result; coin remains centered because top & bottom flex are equal */}
 
             <View style={styles.bottomArea}>
-                {lastResult !== null && (
-                    <Text style={styles.resultText}>
-                        {lastResult === CoinSide.HEADS ? "Kull" : "Kiri"}
-                    </Text>
+                {(pendingPrediction !== null && lastResult !== null) && (
+                    <BottomArea side={lastResult} predicted={pendingPrediction}></BottomArea>
                 )}
             </View>
 
