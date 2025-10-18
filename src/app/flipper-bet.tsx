@@ -5,11 +5,11 @@ import {
     StyleSheet,
     TouchableOpacity,
     Animated,
-    Easing,
     Modal,
     Image,
     Pressable,
-    Dimensions
+    Dimensions,
+    Easing
 } from "react-native";
 import { TapGestureHandler, State } from "react-native-gesture-handler"; // for double-tap
 import { CoinService } from "../service/coin-service";
@@ -32,6 +32,8 @@ export default function Flipper() {
 
     // State for representing which side of the coin we currently have
     const [ coinSide, setCoinSide ] = useState(initialSide)
+    const [ flipped, setFlipped ] = useState(1)
+    let currentFlip = flipped;
 
     // Animated value for the coin flip animation
     const flipAnimation = useRef(new Animated.Value(0)).current;
@@ -49,39 +51,43 @@ export default function Flipper() {
     // Coin flip logic and animation
     let flipCoin = async () => {
         // Animation parameters
-        const MAX_ROTATIONS = 5; // maximum amount of rotations the coin can do
-        const TIME_PER_ROTATION = 800; // milliseconds
+        const MAX_ROTATIONS = 30; // maximum amount of rotations the coin can do
+        const MIN_ROTATIONS = 15;
+        const rotations = Math.max(Math.floor(Math.random() * MAX_ROTATIONS) + 1, MIN_ROTATIONS);
+        const duration = 1500; // milliseconds
 
         // Hide previous result while a new flip is in progress
         setLastResult(null);
 
-        const rotations = Math.floor(Math.random() * MAX_ROTATIONS) + 1;
-        const duration = rotations * TIME_PER_ROTATION;
-
-        // Decide the result
-        const result = Math.random() < 0.5 ? CoinSide.HEADS : CoinSide.TAILS;
-
         Animated.timing(flipAnimation, {
             toValue: rotations,
             duration: duration,
-            easing: Easing.bezier(0.68, -0.55, 0.27, 1.55),
+            easing: Easing.linear,
             useNativeDriver: true,
         }).start(() => {
-            // Reset animation after completion
-            flipAnimation.setValue(0);
-            // At the end of the flip, show the result label
-            setLastResult(result);
+            currentFlip = 1
+            setFlipped(currentFlip)
+            flipAnimation.setValue(0)
         });
 
-        // Change image halfway
-        setTimeout(() => {
-            setCoinSide(result);
-        }, duration / 2)
+        let step = duration / (rotations+1);
+        let currentCoin = coinSide;
+        for (let t = step; duration - t > 0.001; t += step) {
+            setTimeout(() => {
+                if (currentCoin === CoinSide.HEADS) {
+                    setCoinSide(CoinSide.TAILS);
+                    currentCoin = CoinSide.TAILS;
+                } else {
+                    setCoinSide(CoinSide.HEADS);
+                    currentCoin = CoinSide.HEADS;
+                }
+                currentFlip = currentFlip === 1 ? -1 : 1
+                setFlipped(currentFlip)
 
-        // Reset animation after completion
-        setTimeout(() => {
-            flipAnimation.setValue(0);
-        }, duration);
+                if (duration - t - step <= 0.001)
+                    setLastResult(currentCoin)
+            }, t)
+        }
     }
 
     // double-tap handler: open the prediction dialog
@@ -125,18 +131,15 @@ export default function Flipper() {
                             // apply flip animation using rotateX
                             transform: [
                                 {
-                                    rotateX: flipAnimation.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: ["0deg", "360deg"],
-                                    }),
+                                    scaleX: flipped
                                 },
                                 {
                                     rotateY: flipAnimation.interpolate({
                                         inputRange: [0, 1],
-                                        outputRange: ["0deg", "360deg"]
-                                    })
-                                }
-                            ]
+                                        outputRange: ["0deg", "180deg"],
+                                    }),
+                                },
+                            ],
                         }
                     ]}
                     resizeMode="contain"
