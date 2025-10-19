@@ -8,9 +8,8 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <Tabs>
-          <Tabs.Screen name="index" options={{ title: "Home" }} />
-          <Tabs.Screen name="flipper" options={{ title: "flipper" }} />
-          <Tabs.Screen name="flipper-bet" options={{ title: "flipper-bet" }} />
+          <Tabs.Screen name="index" options={{ title: "Kodu" }} />
+          <Tabs.Screen name="coin-flipper" options={{ title: "Viska Münti" }}/>
         </Tabs>
       </SafeAreaProvider>
     </GestureHandlerRootView>
