@@ -27,7 +27,7 @@ export const styles = StyleSheet.create({
     },
     modalBackdrop: {
         flex: 1,
-        backgroundColor: "#1918188c",
+        backgroundColor: "#00000096",
         alignItems: "center",
         justifyContent: "center",
         padding: 16,
@@ -35,14 +35,14 @@ export const styles = StyleSheet.create({
     modalCard: {
         width: "100%",
         maxWidth: 540,
-        backgroundColor: "#1c1d1fff",
+        backgroundColor: "#f4f4f4ff",
         borderRadius: 16,
         padding: 16,
         borderWidth: 1,
         borderColor: "#ffffff0f",
     },
     modalTitle: {
-        color: "#ffffff",
+        color: "#91603A",
         fontSize: 18,
         fontWeight: "700",
         textAlign: "center",
@@ -57,7 +57,7 @@ export const styles = StyleSheet.create({
     choiceCard: {
         width: CARD_WIDTH,
         alignItems: "center",
-        backgroundColor: "#131418ff",
+        backgroundColor: "#e4e4e4ff",
         borderRadius: 14,
         padding: 12,
         borderWidth: 1,
@@ -70,7 +70,7 @@ export const styles = StyleSheet.create({
         marginBottom: 10
     },
     choiceLabel: {
-        color: "#ffffffff",
+        color: "#91603A",
         fontWeight: "600" },
     separator: {
         height: 1,
@@ -78,19 +78,19 @@ export const styles = StyleSheet.create({
         marginVertical: 10 },
     skipBtn: {
         alignSelf: "center",
-        backgroundColor: "#2f6feb",
+        backgroundColor: "#B4CECC",
         paddingHorizontal: 18,
         paddingVertical: 10,
         borderRadius: 999,
     },
     skipBtnText: {
-        color: "#ffffffff",
+        color: "#2b2b2bff",
         fontWeight: "700" },
     closeBtn: {
         alignSelf: "center",
         marginTop: 10,
         padding: 8 },
     closeBtnText: {
-        color: "#b0b5baff",
+        color: "#747678ff",
         fontWeight: "600" },
 });
