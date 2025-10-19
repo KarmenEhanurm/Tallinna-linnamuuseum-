@@ -111,6 +111,8 @@ export default function Flipper() {
 
     return (
         <View style={styles.container}>
+            <Text style={{ fontWeight: 500, fontSize: 24 }}>{coin.title.charAt(0).toLocaleUpperCase() + coin.title.slice(1)}</Text>
+
             {/* top spacer keeps coin centered even when result appears */}
             <View style={{ flex: 1 }} />
             {/* Wrap the coin in a TapGestureHandler to detect double-tap for the betting dialog */}
@@ -141,7 +143,7 @@ export default function Flipper() {
             {/* bottom area holds the result; coin remains centered because top & bottom flex are equal */}
 
             <View style={styles.bottomArea}>
-                {(pendingPrediction !== null && lastResult !== null) && (
+                {(lastResult !== null) && (
                     <BottomArea side={lastResult} predicted={pendingPrediction}></BottomArea>
                 )}
             </View>
