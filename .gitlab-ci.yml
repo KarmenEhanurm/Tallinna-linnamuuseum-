@@ -18,5 +18,5 @@ before_script:
 eas-build:
   stage: build
   script:
-    - apk add --no-cache bash
+    - apk add --no-cache bash git
     - npx eas-cli build --platform all --non-interactive --no-wait
