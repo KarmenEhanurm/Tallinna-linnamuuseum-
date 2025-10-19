@@ -1,0 +1,22 @@
+image: node:alpine
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .npm
+    # or with Yarn:
+    #- .yarn
+
+stages:
+  - build
+
+before_script:
+  - npm ci --cache .npm
+  # or with Yarn:
+  #- yarn install --cache-folder .yarn
+
+eas-build:
+  stage: build
+  script:
+    - apk add --no-cache bash
+    - npx eas-cli build --platform all --non-interactive --no-wait
