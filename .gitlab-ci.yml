@@ -19,4 +19,4 @@ eas-build:
   stage: build
   script:
     - apk add --no-cache bash git
-    - npx eas-cli build --platform all --non-interactive --no-wait
+    - npx eas-cli build --platform android --non-interactive --no-wait
