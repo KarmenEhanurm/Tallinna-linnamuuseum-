@@ -2,6 +2,7 @@ import "react-native-gesture-handler";
 import { Tabs } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function RootLayout() {
   return (
@@ -12,6 +13,7 @@ export default function RootLayout() {
           <Tabs.Screen name="coin-flipper" options={{ title: "Viska Münti" }}/>
         </Tabs>
       </SafeAreaProvider>
+      <Toast/>
     </GestureHandlerRootView>
   );
 }

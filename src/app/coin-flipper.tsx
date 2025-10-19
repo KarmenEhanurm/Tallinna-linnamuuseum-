@@ -2,13 +2,11 @@ import { useState, useRef } from "react";
 import {
     View,
     Text,
-    StyleSheet,
     TouchableOpacity,
     Animated,
     Modal,
     Image,
     Pressable,
-    Dimensions,
     Easing
 } from "react-native";
 import { TapGestureHandler, State } from "react-native-gesture-handler"; // for double-tap
@@ -16,6 +14,7 @@ import { CoinService } from "../service/coin-service";
 import { CoinSide } from "../data/entity/coin";
 import { styles } from "../components/common/stylesheet";
 import { BottomArea } from "../components/specific/coin-flipper/bottom-area";
+import Toast from 'react-native-toast-message';
 
 export default function Flipper() {
     // Initially let's choose the coin's side randomly
@@ -61,6 +60,13 @@ export default function Flipper() {
             currentFlip = 1
             setFlipped(currentFlip)
             flipAnimation.setValue(0)
+
+            // Show notification that the coin has been added to the wallet
+            Toast.show({
+                type: "success",
+                text1: "Münt on lisatud rahakotti",
+                text2: `Münt '${coin.title}' on lisatud teie rahakotti 🪙`
+            });
         });
 
         let step = duration / (rotations+1);
