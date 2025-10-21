@@ -27,6 +27,9 @@ before_script:
 
 eas-build:
   stage: build
+  artifacts:
+    paths:
+      - android/app/build/outputs/apk/release/app-release.apk
   script:
     - npx expo prebuild
     - cd android
