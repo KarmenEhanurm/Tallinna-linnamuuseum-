@@ -1,9 +1,14 @@
-image: node:alpine
+image:
+  name: node:latest
+  entrypoint:
+    - /usr/bin/env
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
     - .npm
+    - android
+    - /android
     # or with Yarn:
     #- .yarn
 
@@ -11,12 +16,18 @@ stages:
   - build
 
 before_script:
+  - apt update
+  - apt install -y openjdk-17-jdk curl unzip
   - npm ci --cache .npm
-  # or with Yarn:
-  #- yarn install --cache-folder .yarn
+  - mkdir /android/sdk
+  - curl https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -o cmdtools.zip
+  - unzip cmdtools.zip
+  - echo "y" | ./cmdline-tools/bin/sdkmanager --sdk_root=/android/sdk --install "platforms;android-30"
+  - echo "y" | ./cmdline-tools/bin/sdkmanager --sdk_root=/android/sdk --install "build-tools;30.0.3"
 
 eas-build:
   stage: build
   script:
-    - apk add --no-cache bash git
-    - npx eas-cli build --platform android --non-interactive --no-wait
+    - npx expo prebuild
+    - cd android
+    - ANDROID_HOME=/android/sdk ./gradlew assembleRelease
