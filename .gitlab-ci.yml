@@ -19,7 +19,7 @@ before_script:
   - apt update
   - apt install -y openjdk-17-jdk curl unzip
   - npm ci --cache .npm
-  - mkdir /android/sdk
+  - mkdir -p /android/sdk
   - curl https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -o cmdtools.zip
   - unzip cmdtools.zip
   - echo "y" | ./cmdline-tools/bin/sdkmanager --sdk_root=/android/sdk --install "platforms;android-30"
