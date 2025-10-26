@@ -1,0 +1,5 @@
+query CoinCount @auth(level: PUBLIC, insecureReason: "Anyone can query the amount of coins") {
+    coinMeta {
+        id_count
+    }
+}

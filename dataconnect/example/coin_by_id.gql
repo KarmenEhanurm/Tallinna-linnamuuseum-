@@ -1,0 +1,5 @@
+query CoinById($id: Int64!) @auth(level: PUBLIC, insecureReason: "Anyone can query coins publicly") {
+    coinMetas(where: { id: { eq: $id }}) {
+        id muisId title description date
+    }
+}

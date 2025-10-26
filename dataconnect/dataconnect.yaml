@@ -1,0 +1,13 @@
+specVersion: "v1"
+serviceId: "coin-discoverer-service"
+location: "europe-north1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "coin-discoverer-database"
+      cloudSql:
+        instanceId: "coin-discoverer-instance"
+        # schemaValidation: "STRICT"     # STRICT mode makes Postgres schema match Data Connect exactly.
+        # schemaValidation: "COMPATIBLE" # COMPATIBLE mode makes Postgres schema compatible with Data Connect.
+connectorDirs: ["./example"]
