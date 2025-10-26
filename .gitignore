@@ -12,3 +12,6 @@ expo-env.d.ts
 /web
 .vscode
 .env
+*.log
+dataconnect-generated
+/dataconnect/.dataconnect
