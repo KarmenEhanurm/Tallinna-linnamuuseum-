@@ -7,10 +7,10 @@ export enum CoinSide {
 };
 
 export interface Coin {
-    id: string;
+    id: number;
     title: string;
-    date: string;
-    description?: string;
+    date?: string | null;
+    description?: string | null;
     headImageResource?: any;
     tailsImageResource?: any;
 };
