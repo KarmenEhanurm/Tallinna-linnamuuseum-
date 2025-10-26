@@ -9,6 +9,7 @@ cache:
     - .npm
     - android
     - /android
+    - /root/.gradle
     # or with Yarn:
     #- .yarn
 
