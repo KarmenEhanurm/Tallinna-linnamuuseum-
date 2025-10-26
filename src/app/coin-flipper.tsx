@@ -131,10 +131,10 @@ export default function Flipper() {
                             // apply flip animation using rotateX
                             transform: [
                                 {
-                                    scaleX: flipped
+                                    scaleY: flipped
                                 },
                                 {
-                                    rotateY: flipAnimation.interpolate({
+                                    rotateX: flipAnimation.interpolate({
                                         inputRange: [0, 1],
                                         outputRange: ["0deg", "180deg"],
                                     }),
