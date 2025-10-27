@@ -13,10 +13,6 @@ export const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center"
     },
-    coinImage: {
-        width: 200,
-        height: 200,
-    },
     bottomArea: {
         flex: 1,
         alignItems: "center",

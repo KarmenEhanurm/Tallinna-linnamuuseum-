@@ -19,10 +19,12 @@ import Toast from 'react-native-toast-message';
 export default function Flipper() {
     // The coin which is actually going to be used
     const [coin, setCoin] = useState<Coin | null>(null);
+    const [coinSize, setCoinSize] = useState<number>(200);
 
     const fetchData = async () => {
         const generatedCoin = await coinService.generateNewCoin();
         setCoin(generatedCoin);
+        setCoinSize(160 * generatedCoin.diameterMm / 25.4)
     };
 
     useEffect(() => {
@@ -140,7 +142,10 @@ export default function Flipper() {
                             uri: coinSide === CoinSide.HEADS ? coin.headImageResource : coin.tailsImageResource
                         }}
                         style={[
-                            styles.coinImage,
+                            {
+                                width: coinSize,
+                                height: coinSize
+                            },
                             {
                                 // apply flip animation using rotateX
                                 transform: [
