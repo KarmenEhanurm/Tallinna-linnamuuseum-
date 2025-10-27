@@ -11,11 +11,11 @@ export interface Coin {
     title: string;
     date?: string | null;
     description?: string | null;
-    diameter?: number;
     weight?: number;
     material?: string;
     headDescription?: string;
     tailsDescription?: string;
+    diameterMm: number;
     headImageResource?: any;
     tailsImageResource?: any;
 };

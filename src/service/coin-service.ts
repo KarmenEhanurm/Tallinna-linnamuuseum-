@@ -37,6 +37,7 @@ export class CoinService {
             id: coin.muisId,
             title: coin.title,
             date: coin.date,
+            diameterMm: coin.diameterMm,
             description: coin.description,
             headImageResource: headsURL,
             tailsImageResource: tailsURL
