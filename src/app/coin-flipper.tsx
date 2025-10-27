@@ -2,11 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import {
     View,
     Text,
-    TouchableOpacity,
     Animated,
-    Modal,
-    Image,
-    Pressable,
     Easing,
     Button
 } from "react-native";
@@ -16,6 +12,7 @@ import { Coin, CoinSide } from "../data/entity/coin";
 import { styles } from "../components/common/stylesheet";
 import { BottomArea } from "../components/specific/coin-flipper/bottom-area";
 import Toast from 'react-native-toast-message';
+import PredictionDialog from "../components/specific/coin-flipper/prediction-dialog";
 
 export default function Flipper() {
     // The coin which is actually going to be used
@@ -184,61 +181,15 @@ export default function Flipper() {
                     )}
                 </View>
 
-                {/* Prediction dialog */}
-                <Modal
+                <PredictionDialog
                     visible={isDialogVisible}
-                    animationType="fade"
-                    transparent
-                    onRequestClose={() => setIsDialogVisible(false)}
-                >
-                    <View style={styles.modalBackdrop}>
-                        <View style={styles.modalCard}>
-                            <Text style={styles.modalTitle}>Vali oma ennustus</Text>
-
-                            <View style={styles.choicesRow}>
-                                {/* Heads choice */}
-                                <Pressable
-                                    style={styles.choiceCard}
-                                    onPress={() => handleChoosePrediction(CoinSide.HEADS)}
-                                    accessibilityRole="button"
-                                >
-                                    <Image
-                                        source={{uri: coin?.headImageResource}}
-                                        style={styles.choiceImage}
-                                        resizeMode="contain"
-                                    />
-                                    <Text style={styles.choiceLabel}>Kull</Text>
-                                </Pressable>
-
-                                {/* Tails choice */}
-                                <Pressable
-                                    style={styles.choiceCard}
-                                    onPress={() => handleChoosePrediction(CoinSide.TAILS)}
-                                    accessibilityRole="button"
-                                >
-                                    <Image
-                                        source={{uri: coin?.tailsImageResource}}
-                                        style={styles.choiceImage}
-                                        resizeMode="contain"
-                                    />
-                                    <Text style={styles.choiceLabel}>Kiri</Text>
-                                </Pressable>
-                            </View>
-
-                            <View style={styles.separator} />
-
-                            {/* Skip: close modal and flip */}
-                            <TouchableOpacity onPress={handleFlipWithoutPrediction} style={styles.skipBtn}>
-                                <Text style={styles.skipBtnText}>Viska ilma ennustuseta</Text>
-                            </TouchableOpacity>
-
-                            {/* Close: close modal without flipping */}
-                            <TouchableOpacity onPress={() => setIsDialogVisible(false)} style={styles.closeBtn}>
-                                <Text style={styles.closeBtnText}>Sulge</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </Modal>
+                    onCloseDialog={() => setIsDialogVisible(false)}
+                    onPredictHeads={() => handleChoosePrediction(CoinSide.HEADS)}
+                    onPredictTails={() => handleChoosePrediction(CoinSide.TAILS)}
+                    onWithoutPrediction={handleFlipWithoutPrediction}
+                    headImageURI={coin.headImageResource}
+                    tailsImageURI={coin.tailsImageResource}
+                />
             </>
             )}
         </View>
