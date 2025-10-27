@@ -58,7 +58,7 @@ export default function Flipper() {
         const MAX_ROTATIONS = 30; // maximum amount of rotations the coin can do
         const MIN_ROTATIONS = 15;
         const rotations = Math.max(Math.floor(Math.random() * MAX_ROTATIONS) + 1, MIN_ROTATIONS);
-        const duration = 1500; // milliseconds
+        const duration = Math.floor(Math.random() * (500 + 1)) + 1000; // milliseconds
 
         // Hide previous result while a new flip is in progress
         setLastResult(null);
