@@ -7,10 +7,11 @@ import {
     Modal,
     Image,
     Pressable,
-    Easing
+    Easing,
+    Button
 } from "react-native";
 import { TapGestureHandler, State } from "react-native-gesture-handler"; // for double-tap
-import { coinService, CoinService } from "../service/coin-service";
+import { coinService } from "../service/coin-service";
 import { Coin, CoinSide } from "../data/entity/coin";
 import { styles } from "../components/common/stylesheet";
 import { BottomArea } from "../components/specific/coin-flipper/bottom-area";
@@ -20,16 +21,6 @@ export default function Flipper() {
     // The coin which is actually going to be used
     const [coin, setCoin] = useState<Coin | null>(null);
     const [coinSize, setCoinSize] = useState<number>(200);
-
-    const fetchData = async () => {
-        const generatedCoin = await coinService.generateNewCoin();
-        setCoin(generatedCoin);
-        setCoinSize(160 * generatedCoin.diameterMm / 25.4)
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, [])
 
     // Initially let's choose the coin's side randomly
     let initialSide = CoinSide.HEADS;
@@ -50,6 +41,19 @@ export default function Flipper() {
 
     // Result of the last completed flip (null until the first flip finishes)
     const [ lastResult, setLastResult ] = useState<CoinSide | null>(null);
+
+    const fetchData = async () => {
+        setCoin(null)
+        setLastResult(null)
+        setPendingPrediction(null)
+        const generatedCoin = await coinService.generateNewCoin();
+        setCoin(generatedCoin);
+        setCoinSize(160 * generatedCoin.diameterMm / 25.4)
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [])
 
     // Coin flip logic and animation
     let flipCoin = async () => {
@@ -131,8 +135,15 @@ export default function Flipper() {
             {coin === null && <Text>Loading...</Text>}
             {coin !== null && (
             <>
-                <Text style={{ fontWeight: 500, fontSize: 24 }}>{coin.title.charAt(0).toLocaleUpperCase() + coin?.title.slice(1)}</Text>
-
+                <View>
+                    <Text style={
+                        styles.titleText
+                    }>{coin.title.charAt(0).toLocaleUpperCase() + coin?.title.slice(1)}</Text>
+                    <Button
+                        onPress={fetchData}
+                        title="Uus"
+                    />
+                </View>
                 {/* top spacer keeps coin centered even when result appears */}
                 <View style={{ flex: 1 }} />
                 {/* Wrap the coin in a TapGestureHandler to detect double-tap for the betting dialog */}
