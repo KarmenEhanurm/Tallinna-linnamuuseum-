@@ -4,7 +4,8 @@ import {
     Text,
     Animated,
     Easing,
-    Button
+    Button,
+    ActivityIndicator
 } from "react-native";
 import { TapGestureHandler, State } from "react-native-gesture-handler"; // for double-tap
 import { coinService } from "../service/coin-service";
@@ -13,6 +14,7 @@ import { styles } from "../components/common/stylesheet";
 import { BottomArea } from "../components/specific/coin-flipper/bottom-area";
 import Toast from 'react-native-toast-message';
 import PredictionDialog from "../components/specific/coin-flipper/prediction-dialog";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function Flipper() {
     // The coin which is actually going to be used
@@ -128,8 +130,10 @@ export default function Flipper() {
     };
 
     return (
-        <View style={styles.container}>
-            {coin === null && <Text>Loading...</Text>}
+        <SafeAreaProvider style={styles.container}>
+            {coin === null &&
+                <ActivityIndicator size={64}/>
+            }
             {coin !== null && (
             <>
                 <View>
@@ -192,7 +196,7 @@ export default function Flipper() {
                 />
             </>
             )}
-        </View>
+        </SafeAreaProvider>
     )
 }
 
