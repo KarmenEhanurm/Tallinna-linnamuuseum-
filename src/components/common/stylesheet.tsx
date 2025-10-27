@@ -8,6 +8,11 @@ const CARD_WIDTH = Math.min(168, Math.floor((width - 64) / 2));
 
 
 export const styles = StyleSheet.create({
+    titleText: {
+        color: "#91603a",
+        fontSize: 28,
+        fontWeight: 500
+    },
     container: {
         flex: 1,
         alignItems: "center",
