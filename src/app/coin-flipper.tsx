@@ -9,13 +9,21 @@ import {
     Pressable,
     Easing
 } from "react-native";
-import { TapGestureHandler, State } from "react-native-gesture-handler"; // for double-tap
+import {
+    TapGestureHandler,
+    PinchGestureHandler,
+    PanGestureHandler,
+    State
+} from "react-native-gesture-handler"; // taps + pinch + pan
 import { CoinService } from "../service/coin-service";
 import { CoinSide } from "../data/entity/coin";
 import { styles } from "../components/common/stylesheet";
 import { BottomArea } from "../components/specific/coin-flipper/bottom-area";
 import Toast from 'react-native-toast-message';
 import { useWallet } from "../context/wallet-context";
+
+const MIN_SCALE = 1;
+const MAX_SCALE = 8;
 
 export default function Flipper() {
 
@@ -41,7 +49,117 @@ export default function Flipper() {
     const [ pendingPrediction, setPendingPrediction ] = useState<CoinSide | null>(null);
 
     // Result of the last completed flip (null until the first flip finishes)
-    const [ lastResult, setLastResult ] = useState<CoinSide | null>(null);
+    const [ lastResult, setLastResult ] = useState<CoinSide | null>(initialSide);
+    // Track if label came from a flip or manual tap (controls verdict visibility)
+    const [ resultSource, setResultSource ] = useState<"flip" | "manual">("manual");
+
+    // ZOOM (pinch) state
+    const baseScale = useRef(new Animated.Value(1)).current; // accumulated scale
+    const pinchScale = useRef(new Animated.Value(1)).current; // current pinch delta
+    const scale = Animated.multiply(baseScale, pinchScale); // effective scale
+    const lastScaleRef = useRef(1); // numeric tracker for logic
+    const [isZoomed, setIsZoomed] = useState(false); // UI flag to hide text when zoomed
+
+    // PAN (drag) while zoomed
+    const translate = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+    const panOffset = useRef({ x: 0, y: 0 }); // accumulator to prevent jumps
+
+    // Gesture handler refs to control priority/simultaneity
+    const pinchRef = useRef<any>(null);
+    const panRef = useRef<any>(null);
+    const doubleTapRef = useRef<any>(null);
+    const singleTapRef = useRef<any>(null);
+
+    // Keep track of scheduled timeouts during flip to cancel later (prevents flicker/late toggles)
+    const timersRef = useRef<number[]>([]);
+    const clearFlipTimers = () => {
+        timersRef.current.forEach(id => clearTimeout(id));
+        timersRef.current = [];
+    };
+
+    const onPinchEvent = Animated.event(
+        [{ nativeEvent: { scale: pinchScale } }],
+        { useNativeDriver: false }
+    );
+
+    const onPinchStateChange = ({ nativeEvent }: any) => {
+        if (nativeEvent.state === State.BEGAN) {
+            setIsZoomed(true);
+        }
+        if (
+            nativeEvent.state === State.END ||
+            nativeEvent.state === State.CANCELLED ||
+            nativeEvent.state === State.FAILED
+        ) {
+            const next = Math.max(
+                MIN_SCALE,
+                Math.min(lastScaleRef.current * nativeEvent.scale, MAX_SCALE)
+            );
+            baseScale.setValue(next);
+            pinchScale.setValue(1);
+            lastScaleRef.current = next;
+
+            if (next === 1) {
+                // back to original size → reset pan & zoom flag
+                translate.setValue({ x: 0, y: 0 });
+                panOffset.current = { x: 0, y: 0 };
+                setIsZoomed(false);
+            } else {
+                setIsZoomed(true);
+            }
+        }
+    };
+
+    // Pan handler (manual to avoid jumps; uses an offset accumulator)
+    const onPanGestureEvent = ({ nativeEvent }: any) => {
+        if (!isZoomed) return;
+        const x = panOffset.current.x + nativeEvent.translationX;
+        const y = panOffset.current.y + nativeEvent.translationY;
+        translate.setValue({ x, y });
+    };
+
+    const onPanStateChange = ({ nativeEvent }: any) => {
+        if (
+            nativeEvent.state === State.END ||
+            nativeEvent.state === State.CANCELLED ||
+            nativeEvent.state === State.FAILED
+        ) {
+            if (lastScaleRef.current <= 1.01) {
+                translate.setValue({ x: 0, y: 0 });
+                panOffset.current = { x: 0, y: 0 };
+            } else {
+                panOffset.current = {
+                    x: panOffset.current.x + nativeEvent.translationX,
+                    y: panOffset.current.y + nativeEvent.translationY,
+                };
+            }
+        }
+    };
+
+    // Single tap: toggle side; sync label, drop verdict; CANCEL any leftover flip timers
+    const onSingleTap = ({ nativeEvent }: any) => {
+        if (nativeEvent.state === State.END) {
+            clearFlipTimers(); // prevent late timeouts from previous flip
+            setFlipped(1); // ensure upright (prevents upside-down artifact)
+            flipAnimation.stopAnimation();
+            flipAnimation.setValue(0);
+
+            const nextSide = coinSide === CoinSide.HEADS ? CoinSide.TAILS : CoinSide.HEADS;
+            setCoinSide(nextSide);
+            setLastResult(nextSide);
+            setResultSource("manual"); // hide prediction verdict in BottomArea
+        }
+    };
+
+    // Double tap: open prediction dialog only if zoom is at original size
+    const onDoubleTap = ({ nativeEvent }: any) => {
+        if (nativeEvent.state === State.ACTIVE) {
+            if (Math.abs(lastScaleRef.current - 1) < 0.01) {
+                setPendingPrediction(null);
+                setIsDialogVisible(true);
+            }
+        }
+    };
 
     // Coin flip logic and animation
     let flipCoin = async () => {
@@ -50,6 +168,9 @@ export default function Flipper() {
         const MIN_ROTATIONS = 15;
         const rotations = Math.max(Math.floor(Math.random() * MAX_ROTATIONS) + 1, MIN_ROTATIONS);
         const duration = 1500; // milliseconds
+
+        // Before starting a new flip, cancel any old timers to avoid stray toggles
+        clearFlipTimers();
 
         // Hide previous result while a new flip is in progress
         setLastResult(null);
@@ -64,25 +185,28 @@ export default function Flipper() {
             setFlipped(currentFlip)
             flipAnimation.setValue(0)
 
+            // Done with all timers for this flip
+            clearFlipTimers();
+
             //popup only if coin is added to the wallet
             let currentCoin = coinSide;
             const alreadyInWallet = coins.some(c => c.id === coin.id);
-             if (!alreadyInWallet) {
-            addCoin(coin, currentCoin);
-            // Show notification that the coin has been added to the wallet
-            Toast.show({
-                type: "success",
-                text1: "Münt on lisatud rahakotti",
-                text2: `Münt '${coin.title}' on lisatud teie rahakotti 🪙`
-            });
-            
-        }
+            if (!alreadyInWallet) {
+                addCoin(coin, currentCoin);
+
+                // Show notification that the coin has been added to the wallet
+                Toast.show({
+                    type: "success",
+                    text1: "Münt on lisatud rahakotti",
+                    text2: `Münt '${coin.title}' on lisatud teie rahakotti 🪙`
+                });
+            }
         });
 
         let step = duration / (rotations+1);
         let currentCoin = coinSide;
         for (let t = step; duration - t > 0.001; t += step) {
-            setTimeout(() => {
+            const id = setTimeout(() => {
                 if (currentCoin === CoinSide.HEADS) {
                     setCoinSide(CoinSide.TAILS);
                     currentCoin = CoinSide.TAILS;
@@ -93,19 +217,14 @@ export default function Flipper() {
                 currentFlip = currentFlip === 1 ? -1 : 1
                 setFlipped(currentFlip)
 
-                if (duration - t - step <= 0.001)
-                    setLastResult(currentCoin)
-            }, t)
+                if (duration - t - step <= 0.001) {
+                    setLastResult(currentCoin);
+                    setResultSource("flip");
+                }
+            }, t) as unknown as number;
+            timersRef.current.push(id);
         }
     }
-
-    // double-tap handler: open the prediction dialog
-    const onCoinDoubleTap = ({ nativeEvent }: any) => {
-        if (nativeEvent.state === State.ACTIVE) {
-            setPendingPrediction(null); // clear any previous prediction
-            setIsDialogVisible(true);   // show dialog
-        }
-    };
 
     // choose Heads/Tails in the dialog, close dialog, then flip
     const handleChoosePrediction = (side: CoinSide) => {
@@ -131,36 +250,70 @@ export default function Flipper() {
 
             {/* top spacer keeps coin centered even when result appears */}
             <View style={{ flex: 1 }} />
-            {/* Wrap the coin in a TapGestureHandler to detect double-tap for the betting dialog */}
-            <TapGestureHandler numberOfTaps={2} onHandlerStateChange={onCoinDoubleTap}>
-                <Animated.Image
-                    source={coinSide === CoinSide.HEADS ? coin.headImageResource : coin.tailsImageResource}
-                    style={[
-                        styles.coinImage,
-                        {
-                            // apply flip animation using rotateX
-                            transform: [
-                                {
-                                    scaleY: flipped
-                                },
-                                {
-                                    rotateX: flipAnimation.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: ["0deg", "180deg"],
-                                    }),
-                                },
-                            ],
-                        }
-                    ]}
-                    resizeMode="contain"
-                />
+
+            {/* Double-tap wraps single-tap; single waits for double so it doesn't trigger on double.
+                Also: single/double taps wait for pinch & pan*/}
+            <TapGestureHandler
+                ref={doubleTapRef}
+                numberOfTaps={2}
+                waitFor={[pinchRef, panRef]}
+                onHandlerStateChange={onDoubleTap}
+            >
+                <TapGestureHandler
+                    ref={singleTapRef}
+                    waitFor={[doubleTapRef, pinchRef, panRef]}
+                    onHandlerStateChange={onSingleTap}
+                >
+                    {/* Pinch & pan recognize simultaneously; pinch has priority via taps waiting */}
+                    <PinchGestureHandler
+                        ref={pinchRef}
+                        simultaneousHandlers={panRef}
+                        onGestureEvent={onPinchEvent}
+                        onHandlerStateChange={onPinchStateChange}
+                    >
+                        <PanGestureHandler
+                            ref={panRef}
+                            simultaneousHandlers={pinchRef}
+                            enabled={isZoomed}
+                            onGestureEvent={onPanGestureEvent}
+                            onHandlerStateChange={onPanStateChange}
+                        >
+                            <Animated.View>
+                                <Animated.Image
+                                    source={coinSide === CoinSide.HEADS ? coin.headImageResource : coin.tailsImageResource}
+                                    style={[
+                                        styles.coinImage,
+                                        {
+                                            // pan + zoom + flip transforms
+                                            transform: [
+                                                { translateX: translate.x },
+                                                { translateY: translate.y },
+                                                { scale }, // pinch-to-zoom
+                                                { scaleY: flipped },
+                                                {
+                                                    rotateX: flipAnimation.interpolate({
+                                                        inputRange: [0, 1],
+                                                        outputRange: ["0deg", "180deg"],
+                                                    }),
+                                                },
+                                            ],
+                                        }
+                                    ]}
+                                    resizeMode="contain"
+                                />
+                            </Animated.View>
+                        </PanGestureHandler>
+                    </PinchGestureHandler>
+                </TapGestureHandler>
             </TapGestureHandler>
 
-            {/* bottom area holds the result; coin remains centered because top & bottom flex are equal */}
-
+            {/* bottom area holds the result; hidden while zoomed */}
             <View style={styles.bottomArea}>
-                {(lastResult !== null) && (
-                    <BottomArea side={lastResult} predicted={pendingPrediction}></BottomArea>
+                {(lastResult !== null && !isZoomed) && (
+                    <BottomArea
+                        side={lastResult}
+                        predicted={resultSource === "flip" ? pendingPrediction : null}
+                    />
                 )}
             </View>
 
