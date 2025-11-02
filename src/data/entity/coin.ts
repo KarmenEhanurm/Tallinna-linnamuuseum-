@@ -11,6 +11,11 @@ export interface Coin {
     title: string;
     date: string;
     description?: string;
+    diameter?: number;
+    weight?: number;
+    material?: string;
+    headDescription?: string;
+    tailsDescription?: string;
     headImageResource?: any;
     tailsImageResource?: any;
 };

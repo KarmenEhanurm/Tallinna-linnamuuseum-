@@ -93,4 +93,70 @@ export const styles = StyleSheet.create({
     closeBtnText: {
         color: "#747678ff",
         fontWeight: "600" },
+
+    // Bottom Sheet Styles    
+    bottomSheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#f7fafa",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 10,
+    paddingBottom: 40,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: -3 },
+    shadowRadius: 6,
+    elevation: 10,
+    },
+
+    sheetHeader: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    },
+
+    sheetHandle: {
+    width: 60,
+    height: 5,
+    backgroundColor: "#ccc",
+    borderRadius: 3,
+    marginVertical: 10,
+    },
+
+    sheetCloseBtn: {
+    position: "absolute",
+    right: 20,
+    top: 0,
+    padding: 10,
+    },
+
+    sheetCloseIcon: {
+    fontSize: 18,
+    color: "#333",
+    },
+
+    infoCard: {
+    backgroundColor: "#b7d6d5",
+    borderRadius: 20,
+    padding: 15,
+    marginTop: 12,
+    },
+
+    infoTitle: {
+    fontWeight: "600",
+    fontSize: 16,
+    marginBottom: 6,
+    },
+
+    infoValue: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#000",
+    },
+
 });
