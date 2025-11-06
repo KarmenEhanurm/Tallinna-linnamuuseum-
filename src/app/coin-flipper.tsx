@@ -172,12 +172,7 @@ export default function Flipper() {
                                 onPress={() => handleChoosePrediction(CoinSide.HEADS)}
                                 accessibilityRole="button"
                             >
-                                <Image
-                                    source={coin.headImageResource}
-                                    style={styles.choiceImage}
-                                    resizeMode="contain"
-                                />
-                                <Text style={styles.choiceLabel}>Kull</Text>
+                                <Text style={styles.choiceLabel}>Avers</Text>
                             </Pressable>
 
                             {/* Tails choice */}
@@ -186,12 +181,7 @@ export default function Flipper() {
                                 onPress={() => handleChoosePrediction(CoinSide.TAILS)}
                                 accessibilityRole="button"
                             >
-                                <Image
-                                    source={coin.tailsImageResource}
-                                    style={styles.choiceImage}
-                                    resizeMode="contain"
-                                />
-                                <Text style={styles.choiceLabel}>Kiri</Text>
+                                <Text style={styles.choiceLabel}>Revers</Text>
                             </Pressable>
                         </View>
 
