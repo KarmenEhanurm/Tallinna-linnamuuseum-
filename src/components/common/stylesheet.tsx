@@ -100,7 +100,7 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#f7fafa",
+    backgroundColor: "rgba(255, 255, 255, 0.85)", // ← semi-transparent white
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingTop: 10,
@@ -141,7 +141,7 @@ export const styles = StyleSheet.create({
     },
 
     infoCard: {
-    backgroundColor: "#b7d6d5",
+    backgroundColor: "rgba(173, 216, 216, 0.7)",
     borderRadius: 20,
     padding: 15,
     marginTop: 12,

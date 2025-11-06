@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
     View,
     Text,
@@ -32,6 +32,7 @@ export default function Flipper() {
     // --- Bottom sheet state ---
     const [isInfoVisible, setIsInfoVisible] = useState(false);
     const bottomSheetAnim = useRef(new Animated.Value(0)).current;
+    const coinShiftAnim = useRef(new Animated.Value(0)).current; // 0 = normal, 1 = shifted up, for info sheet
     const dragY = useRef(new Animated.Value(0)).current;
 
     // --- Flip coin logic ---
@@ -94,21 +95,41 @@ export default function Flipper() {
 
     // --- Bottom sheet animations ---
     const openInfoSheet = () => {
-        setIsInfoVisible(true);
+    setIsInfoVisible(true);
+
+    Animated.parallel([
         Animated.timing(bottomSheetAnim, {
         toValue: 1,
         duration: 300,
+        easing: Easing.out(Easing.quad),
         useNativeDriver: true,
-        }).start();
+        }),
+        Animated.timing(coinShiftAnim, {
+        toValue: 1, // move coin up
+        duration: 300,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+        }),
+    ]).start();
     };
 
     const closeInfoSheet = () => {
+    Animated.parallel([
         Animated.timing(bottomSheetAnim, {
         toValue: 0,
         duration: 300,
+        easing: Easing.in(Easing.quad),
         useNativeDriver: true,
-        }).start(() => setIsInfoVisible(false));
+        }),
+        Animated.timing(coinShiftAnim, {
+        toValue: 0, // move coin back down
+        duration: 300,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+        }),
+    ]).start(() => setIsInfoVisible(false));
     };
+
 
     // --- Swipe-up gesture anywhere on screen ---
     const panResponder = useRef(
@@ -158,12 +179,18 @@ export default function Flipper() {
                 transform: [
                     { scaleY: flipped },
                     {
-                    rotateX: flipAnimation.interpolate({
+                        rotateX: flipAnimation.interpolate({
                         inputRange: [0, 1],
                         outputRange: ["0deg", "180deg"],
-                    }),
+                        }),
                     },
-                ],
+                    {
+                        translateY: coinShiftAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -230], // moves coin up 230px when sheet opens
+                        }),
+                    },
+                    ],
                 },
             ]}
             resizeMode="contain"
@@ -240,17 +267,15 @@ export default function Flipper() {
             style={[
             styles.bottomSheet,
             {
-                transform: [
-                {
-                    translateY: Animated.add(
-                    bottomSheetAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [400, 0],
-                    }),
-                    dragY
-                    ),
-                },
-                ],
+            transform: [
+            {
+            translateY: bottomSheetAnim.interpolate({
+                inputRange: [0, 1],
+              outputRange: [400, 0], // slides up from bottom
+            }),
+            },
+        ],
+
             },
             ]}
             {...sheetPanResponder.panHandlers}
