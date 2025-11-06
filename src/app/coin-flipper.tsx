@@ -13,8 +13,9 @@ import {
     TapGestureHandler,
     PinchGestureHandler,
     PanGestureHandler,
+    RotationGestureHandler,
     State
-} from "react-native-gesture-handler"; // taps + pinch + pan
+} from "react-native-gesture-handler"; // taps + pinch + pan + rotate
 import { CoinService } from "../service/coin-service";
 import { CoinSide } from "../data/entity/coin";
 import { styles } from "../components/common/stylesheet";
@@ -54,19 +55,22 @@ export default function Flipper() {
     const [ resultSource, setResultSource ] = useState<"flip" | "manual">("manual");
 
     // ZOOM (pinch) state
-    const baseScale = useRef(new Animated.Value(1)).current; // accumulated scale
-    const pinchScale = useRef(new Animated.Value(1)).current; // current pinch delta
-    const scale = Animated.multiply(baseScale, pinchScale); // effective scale
-    const lastScaleRef = useRef(1); // numeric tracker for logic
+    const renderScale = useRef(new Animated.Value(1)).current; // what we actually apply to transform
+    const lastScaleRef = useRef(1); // numeric accumulator (base)
     const [isZoomed, setIsZoomed] = useState(false); // UI flag to hide text when zoomed
 
     // PAN (drag) while zoomed
     const translate = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
     const panOffset = useRef({ x: 0, y: 0 }); // accumulator to prevent jumps
 
+    // ROTATION (two-finger)
+    const renderRotation = useRef(new Animated.Value(0)).current; // what we apply to transform (radians)
+    const lastRotationRef = useRef(0); // numeric accumulator (radians)
+
     // Gesture handler refs to control priority/simultaneity
     const pinchRef = useRef<any>(null);
     const panRef = useRef<any>(null);
+    const rotateRef = useRef<any>(null);
     const doubleTapRef = useRef<any>(null);
     const singleTapRef = useRef<any>(null);
 
@@ -77,40 +81,37 @@ export default function Flipper() {
         timersRef.current = [];
     };
 
-    const onPinchEvent = Animated.event(
-        [{ nativeEvent: { scale: pinchScale } }],
-        { useNativeDriver: false }
-    );
+    // Pinch: live clamp to [1, MAX_SCALE]
+    const onPinchEvent = ({ nativeEvent }: any) => {
+        // live scaling without undershoot/snap-back
+        const nextUnclamped = lastScaleRef.current * nativeEvent.scale;
+        const next = Math.max(MIN_SCALE, Math.min(nextUnclamped, MAX_SCALE));
+        renderScale.setValue(next);
+        // mark zoomed flag immediately for UI (labels hidden while zoomed)
+        setIsZoomed(next > 1.001);
+    };
 
     const onPinchStateChange = ({ nativeEvent }: any) => {
-        if (nativeEvent.state === State.BEGAN) {
-            setIsZoomed(true);
-        }
-        if (
-            nativeEvent.state === State.END ||
-            nativeEvent.state === State.CANCELLED ||
-            nativeEvent.state === State.FAILED
-        ) {
-            const next = Math.max(
-                MIN_SCALE,
-                Math.min(lastScaleRef.current * nativeEvent.scale, MAX_SCALE)
-            );
-            baseScale.setValue(next);
-            pinchScale.setValue(1);
-            lastScaleRef.current = next;
+        if (nativeEvent.state === State.END || nativeEvent.state === State.CANCELLED || nativeEvent.state === State.FAILED) {
+            // finalize the scale
+            renderScale.stopAnimation((val: number) => {
+                const clamped = Math.max(MIN_SCALE, Math.min(val ?? lastScaleRef.current, MAX_SCALE));
+                renderScale.setValue(clamped);
+                lastScaleRef.current = clamped;
 
-            if (next === 1) {
-                // back to original size → reset pan & zoom flag
-                translate.setValue({ x: 0, y: 0 });
-                panOffset.current = { x: 0, y: 0 };
-                setIsZoomed(false);
-            } else {
-                setIsZoomed(true);
-            }
+                if (clamped === 1) {
+                    // reset pan & rotation when back to original size
+                    translate.setValue({ x: 0, y: 0 });
+                    panOffset.current = { x: 0, y: 0 };
+                    renderRotation.setValue(0);
+                    lastRotationRef.current = 0;
+                    setIsZoomed(false);
+                }
+            });
         }
     };
 
-    // Pan handler (manual to avoid jumps; uses an offset accumulator)
+    // Pan (drag): active only when zoomed
     const onPanGestureEvent = ({ nativeEvent }: any) => {
         if (!isZoomed) return;
         const x = panOffset.current.x + nativeEvent.translationX;
@@ -119,12 +120,8 @@ export default function Flipper() {
     };
 
     const onPanStateChange = ({ nativeEvent }: any) => {
-        if (
-            nativeEvent.state === State.END ||
-            nativeEvent.state === State.CANCELLED ||
-            nativeEvent.state === State.FAILED
-        ) {
-            if (lastScaleRef.current <= 1.01) {
+        if (nativeEvent.state === State.END || nativeEvent.state === State.CANCELLED || nativeEvent.state === State.FAILED) {
+            if (lastScaleRef.current <= 1.001) {
                 translate.setValue({ x: 0, y: 0 });
                 panOffset.current = { x: 0, y: 0 };
             } else {
@@ -133,6 +130,28 @@ export default function Flipper() {
                     y: panOffset.current.y + nativeEvent.translationY,
                 };
             }
+        }
+    };
+
+    // Rotate (two-finger twist): active only when zoomed
+    const onRotateEvent = ({ nativeEvent }: any) => {
+        if (!isZoomed) return; // rotate only in zoom view
+        const next = lastRotationRef.current + nativeEvent.rotation; // radians
+        renderRotation.setValue(next);
+    };
+
+    const onRotateStateChange = ({ nativeEvent }: any) => {
+        if (!isZoomed) return;
+        if (nativeEvent.state === State.END || nativeEvent.state === State.CANCELLED || nativeEvent.state === State.FAILED) {
+            // accumulate rotation
+            renderRotation.stopAnimation((val: number) => {
+                lastRotationRef.current = val ?? lastRotationRef.current;
+                // snap tiny angles to 0 for neatness when nearly straight
+                if (Math.abs(lastRotationRef.current) < 0.01) {
+                    lastRotationRef.current = 0;
+                    renderRotation.setValue(0);
+                }
+            });
         }
     };
 
@@ -164,9 +183,9 @@ export default function Flipper() {
     // Coin flip logic and animation
     let flipCoin = async () => {
         // Animation parameters
-        const MAX_ROTATIONS = 30; // maximum amount of rotations the coin can do
-        const MIN_ROTATIONS = 15;
-        const rotations = Math.max(Math.floor(Math.random() * MAX_ROTATIONS) + 1, MIN_ROTATIONS);
+        const MAX_ROTATIONS_LOCAL = 30; // maximum amount of rotations the coin can do
+        const MIN_ROTATIONS_LOCAL = 15;
+        const rotations = Math.max(Math.floor(Math.random() * MAX_ROTATIONS_LOCAL) + 1, MIN_ROTATIONS_LOCAL);
         const duration = 1500; // milliseconds
 
         // Before starting a new flip, cancel any old timers to avoid stray toggles
@@ -251,58 +270,72 @@ export default function Flipper() {
             {/* top spacer keeps coin centered even when result appears */}
             <View style={{ flex: 1 }} />
 
-            {/* Double-tap wraps single-tap; single waits for double so it doesn't trigger on double.
-                Also: single/double taps wait for pinch & pan*/}
+            {/* Double-tap wraps single-tap; taps wait for gesture handlers (pinch/pan/rotate) */}
             <TapGestureHandler
                 ref={doubleTapRef}
                 numberOfTaps={2}
-                waitFor={[pinchRef, panRef]}
+                waitFor={[pinchRef, panRef, rotateRef]}
                 onHandlerStateChange={onDoubleTap}
             >
                 <TapGestureHandler
                     ref={singleTapRef}
-                    waitFor={[doubleTapRef, pinchRef, panRef]}
+                    waitFor={[doubleTapRef, pinchRef, panRef, rotateRef]}
                     onHandlerStateChange={onSingleTap}
                 >
-                    {/* Pinch & pan recognize simultaneously; pinch has priority via taps waiting */}
+                    {/* Pinch, rotate and pan recognize simultaneously (rotate/pan only when zoomed) */}
                     <PinchGestureHandler
                         ref={pinchRef}
-                        simultaneousHandlers={panRef}
+                        simultaneousHandlers={[panRef, rotateRef]}
                         onGestureEvent={onPinchEvent}
                         onHandlerStateChange={onPinchStateChange}
                     >
-                        <PanGestureHandler
-                            ref={panRef}
-                            simultaneousHandlers={pinchRef}
+                        <RotationGestureHandler
+                            ref={rotateRef}
                             enabled={isZoomed}
-                            onGestureEvent={onPanGestureEvent}
-                            onHandlerStateChange={onPanStateChange}
+                            simultaneousHandlers={[pinchRef, panRef]}
+                            onGestureEvent={onRotateEvent}
+                            onHandlerStateChange={onRotateStateChange}
                         >
-                            <Animated.View>
-                                <Animated.Image
-                                    source={coinSide === CoinSide.HEADS ? coin.headImageResource : coin.tailsImageResource}
-                                    style={[
-                                        styles.coinImage,
-                                        {
-                                            // pan + zoom + flip transforms
-                                            transform: [
-                                                { translateX: translate.x },
-                                                { translateY: translate.y },
-                                                { scale }, // pinch-to-zoom
-                                                { scaleY: flipped },
-                                                {
-                                                    rotateX: flipAnimation.interpolate({
-                                                        inputRange: [0, 1],
-                                                        outputRange: ["0deg", "180deg"],
-                                                    }),
-                                                },
-                                            ],
-                                        }
-                                    ]}
-                                    resizeMode="contain"
-                                />
-                            </Animated.View>
-                        </PanGestureHandler>
+                            <PanGestureHandler
+                                ref={panRef}
+                                enabled={isZoomed}
+                                simultaneousHandlers={[pinchRef, rotateRef]}
+                                onGestureEvent={onPanGestureEvent}
+                                onHandlerStateChange={onPanStateChange}
+                            >
+                                <Animated.View>
+                                    <Animated.Image
+                                        source={coinSide === CoinSide.HEADS ? coin.headImageResource : coin.tailsImageResource}
+                                        style={[
+                                            styles.coinImage,
+                                            {
+                                                // pan + zoom + rotate + flip transforms
+                                                transform: [
+                                                    { translateX: translate.x },
+                                                    { translateY: translate.y },
+                                                    { scale: renderScale }, // pinch-to-zoom (clamped live)
+                                                    {
+                                                        rotate: renderRotation.interpolate({
+                                                            inputRange: [-Math.PI * 2, Math.PI * 2],
+                                                            outputRange: ['-6.2832rad', '6.2832rad'],
+                                                            extrapolate: 'extend',
+                                                        })
+                                                    },
+                                                    { scaleY: flipped },
+                                                    {
+                                                        rotateX: flipAnimation.interpolate({
+                                                            inputRange: [0, 1],
+                                                            outputRange: ["0deg", "180deg"],
+                                                        }),
+                                                    },
+                                                ],
+                                            }
+                                        ]}
+                                        resizeMode="contain"
+                                    />
+                                </Animated.View>
+                            </PanGestureHandler>
+                        </RotationGestureHandler>
                     </PinchGestureHandler>
                 </TapGestureHandler>
             </TapGestureHandler>
