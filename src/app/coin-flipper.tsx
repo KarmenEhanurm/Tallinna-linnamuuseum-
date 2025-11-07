@@ -15,8 +15,11 @@ import { CoinSide } from "../data/entity/coin";
 import { styles } from "../components/common/stylesheet";
 import { BottomArea } from "../components/specific/coin-flipper/bottom-area";
 import Toast from 'react-native-toast-message';
+import { useWallet } from "../context/wallet-context";
 
 export default function Flipper() {
+
+    const { addCoin, coins } = useWallet();
     // Initially let's choose the coin's side randomly
     let initialSide = CoinSide.HEADS;
     if (Math.random() < 0.5)
@@ -61,12 +64,19 @@ export default function Flipper() {
             setFlipped(currentFlip)
             flipAnimation.setValue(0)
 
+            //popup only if coin is added to the wallet
+            let currentCoin = coinSide;
+            const alreadyInWallet = coins.some(c => c.id === coin.id);
+             if (!alreadyInWallet) {
+            addCoin(coin, currentCoin);
             // Show notification that the coin has been added to the wallet
             Toast.show({
                 type: "success",
                 text1: "Münt on lisatud rahakotti",
                 text2: `Münt '${coin.title}' on lisatud teie rahakotti 🪙`
             });
+            
+        }
         });
 
         let step = duration / (rotations+1);
