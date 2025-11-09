@@ -64,11 +64,6 @@ export const styles = StyleSheet.create({
         borderColor: "#ffffff14",
         marginHorizontal: 6,
     },
-    choiceImage: {
-        width: CARD_WIDTH - 24,
-        height: CARD_WIDTH - 24,
-        marginBottom: 10
-    },
     choiceLabel: {
         color: "#91603A",
         fontWeight: "600" },
