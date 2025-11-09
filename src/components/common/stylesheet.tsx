@@ -64,11 +64,6 @@ export const styles = StyleSheet.create({
         borderColor: "#ffffff14",
         marginHorizontal: 6,
     },
-    choiceImage: {
-        width: CARD_WIDTH - 24,
-        height: CARD_WIDTH - 24,
-        marginBottom: 10
-    },
     choiceLabel: {
         color: "#91603A",
         fontWeight: "600" },
@@ -93,6 +88,7 @@ export const styles = StyleSheet.create({
     closeBtnText: {
         color: "#747678ff",
         fontWeight: "600" },
+
 
     // Bottom Sheet Styles    
     bottomSheet: {
@@ -159,4 +155,59 @@ export const styles = StyleSheet.create({
     color: "#000",
     },
 
+
+        walletTitle: {
+        fontSize: 28,
+        fontWeight: "700",
+        textAlign: "center",
+        marginTop: 20,
+        marginBottom: 8,
+        color: "#2b2b2b",
+    },
+    walletSubtitle: {
+        fontSize: 16,
+        textAlign: "center",
+        marginBottom: 16,
+        color: "#747678",
+        fontWeight: "500",
+    },
+    walletArea: {
+        flex: 1,
+        backgroundColor: "#f4f4f4",
+        margin: 16,
+        borderRadius: 16,
+        position: "relative",
+        overflow: "hidden",
+    },
+    walletCoinContainer: {
+        position: "absolute",
+        width: 80,
+        height: 80,
+        zIndex: 10,
+    },
+    walletCoinImage: {
+        width: 80,
+        height: 80,
+    },
+    walletEmptyState: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    walletEmptyText: {
+        fontSize: 20,
+        fontWeight: "600",
+        color: "#91603A",
+        marginBottom: 8,
+    },
+    walletEmptySubtext: {
+        fontSize: 14,
+        color: "#747678",
+    },
+    walletCoinCenterArea: {
+        flex: 1,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 });
