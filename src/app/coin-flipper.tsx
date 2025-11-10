@@ -304,15 +304,33 @@
         ]).start(() => setIsInfoVisible(false));
     };
 
+    // Coin must be at its initial state to allow info swipe
+    const isCoinAtStart = () =>
+        lastScaleRef.current <= 1.001 &&
+        Math.abs(lastRotationRef.current) < 0.01 &&
+        Math.abs(panOffset.current.x) < 0.5 &&
+        Math.abs(panOffset.current.y) < 0.5;
+
     // --- Swipe-up gesture anywhere on screen ---
     const swipeResponder = useRef(
         PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-            Math.abs(gestureState.dy) > 20,
-        onPanResponderRelease: (_, gestureState) => {
-            if (gestureState.dy < -80) openInfoSheet();
-        },
+            // Don't claim the gesture at start
+            onStartShouldSetPanResponder: () => false,
+
+            // Claim only when: single finger, not zoomed, significant vertical move, and it's an upward swipe (dy < 0)
+            onMoveShouldSetPanResponder: (_, g) => {
+                const singleTouch = (g.numberActiveTouches ?? 1) === 1;
+                const bigVerticalMove = Math.abs(g.dy) > 20 && Math.abs(g.dy) > Math.abs(g.dx);
+                const swipeUp = g.dy < -20;
+                return singleTouch && isCoinAtStart() && bigVerticalMove && swipeUp;
+            },
+
+            // Allow RNGH handlers to take over if they want (reduces deadlocks)
+            onPanResponderTerminationRequest: () => true,
+
+            onPanResponderRelease: (_, g) => {
+                if (isCoinAtStart() && g.dy < -80) openInfoSheet();
+            },
         })
     ).current;
 
