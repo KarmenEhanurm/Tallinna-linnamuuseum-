@@ -17,8 +17,9 @@ import {
     RotationGestureHandler,
     State,
 } from "react-native-gesture-handler";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { CoinService } from "../service/coin-service";
-import { CoinSide } from "../data/entity/coin";
+import { CoinSide, Coin } from "../data/entity/coin";
 import { styles } from "../components/common/stylesheet";
 import { BottomArea } from "../components/specific/coin-flipper/bottom-area";
 import Toast from "react-native-toast-message";
@@ -30,12 +31,85 @@ import {
     TutorialProgress,
     TutorialStepKey,
 } from "../components/tutorial/first-run-tutorial";
+import { WalletService } from "../service/wallet-service";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 8;
 
+const PROGRESS_KEY = "tutorial.progress";
+
+// persist helper
+async function loadProgress(): Promise<Partial<TutorialProgress>> {
+    try {
+        const raw = await AsyncStorage.getItem(PROGRESS_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch {
+        return {};
+    }
+}
+async function saveProgress(update: Partial<TutorialProgress>) {
+    try {
+        const current = await loadProgress();
+        const merged = { ...current, ...update };
+        await AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(merged));
+    } catch {}
+}
+
+// Small hook to check "tutorial.done" and avoid showing the overlay after completion
+function useTutorialDone() {
+    const [hydrated, setHydrated] = useState(false);
+    const [done, setDone] = useState(false);
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const v = await AsyncStorage.getItem("tutorial.done");
+                if (mounted) setDone(v === "1");
+            } finally {
+                if (mounted) setHydrated(true);
+            }
+        })();
+        return () => {
+            mounted = false;
+        };
+    }, []);
+    return { hydrated, done };
+}
+
 export default function Flipper() {
+    const router = useRouter();
+    const routeParams = useLocalSearchParams<{
+        coinId?: string;
+        openInfo?: string; // "1" to open
+        fromWallet?: string; // "info" (tapped coin) | "back" (swiped back)
+    }>();
+
     const { addCoin, coins } = useWallet();
+
+    // coin source: allow loading by id from wallet, or fallback to fresh random coin
+    const [coin, setCoin] = useState<Coin>(() => new CoinService().generateNewCoin());
+
+    useEffect(() => {
+        if (routeParams?.coinId) {
+            const fromWallet = WalletService.getCoins().find((c) => c.id === routeParams.coinId);
+            if (fromWallet) {
+                // map wallet coin shape -> Coin (keeps head/tails resources & descriptions)
+                setCoin({
+                    id: fromWallet.id,
+                    title: fromWallet.title,
+                    headImageResource: fromWallet.headImageResource,
+                    tailsImageResource: fromWallet.tailsImageResource,
+                    headDescription: fromWallet.headDescription,
+                    tailsDescription: fromWallet.tailsDescription,
+                    diameter: fromWallet.diameter,
+                    weight: fromWallet.weight,
+                    material: fromWallet.material,
+                    date: fromWallet.date,
+                } as Coin);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [routeParams?.coinId]);
 
     // initial side
     let initialSide = Math.random() < 0.5 ? CoinSide.HEADS : CoinSide.TAILS;
@@ -44,7 +118,6 @@ export default function Flipper() {
     const [isFlipping, setIsFlipping] = useState(false);
 
     const flipAnimation = useRef(new Animated.Value(0)).current;
-    const coin = new CoinService().generateNewCoin();
 
     // prediction dialog
     const [isDialogVisible, setIsDialogVisible] = useState(false);
@@ -83,6 +156,8 @@ export default function Flipper() {
     };
 
     // TUTORIAL: progress & helpers
+    const { hydrated: tutHydrated, done: tutorialDone } = useTutorialDone(); // ← gate overlay
+
     const [tutorial, setTutorial] = useState<TutorialProgress>({
         tapTwice: false,
         zoomedIn: false,
@@ -91,16 +166,55 @@ export default function Flipper() {
         doubleTapped: false,
         openedInfo: false,
         swipeWallet: false,
-        dragCoin: false,
-        walletInfo: false,
+        dragCoin: true,
+        walletInfo: true,
+        last: false,
     });
     const tapCounterRef = useRef(0);
 
+    // hydrate from persistent progress (merge, do not overwrite)
+    useEffect(() => {
+        loadProgress().then((stored) => {
+            setTutorial((prev) => ({ ...prev, ...stored }));
+        });
+    }, []);
+
+    // If we came from the wallet screen as part of the tutorial, mark and persist
+    useEffect(() => {
+        if (routeParams?.fromWallet) {
+            setTutorial((prev) => {
+                const next = {
+                    ...prev,
+                    swipeWallet: true,
+                    walletInfo: prev.walletInfo || routeParams.fromWallet === "info" || routeParams.fromWallet === "back",
+                };
+                // Only unlock "last" if all pre-wallet steps are already completed
+                const preWalletDone =
+                    next.tapTwice &&
+                    next.zoomedIn &&
+                    next.rotated &&
+                    next.zoomedOut &&
+                    next.doubleTapped &&
+                    next.openedInfo &&
+                    next.swipeWallet &&
+                    next.walletInfo;
+                if (preWalletDone) next.last = true;
+                saveProgress(next);
+                return next;
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [routeParams?.fromWallet]);
+
     const handleSkipStep = (step: TutorialStepKey) => {
-        setTutorial((prev) => ({ ...prev, [step]: true }));
+        setTutorial((prev) => {
+            const next = { ...prev, [step]: true };
+            saveProgress({ [step]: true } as Partial<TutorialProgress>);
+            return next;
+        });
     };
-    const handleSkipAll = () => {
-        setTutorial({
+    const handleSkipAll = async () => {
+        const all: TutorialProgress = {
             tapTwice: true,
             zoomedIn: true,
             rotated: true,
@@ -109,12 +223,16 @@ export default function Flipper() {
             openedInfo: true,
             swipeWallet: true,
             dragCoin: true,
-            walletInfo: false,
-        });
+            walletInfo: true,
+            last: true,
+        };
+        setTutorial(all);
+        saveProgress(all);
+        await AsyncStorage.setItem("tutorial.done", "1");
     };
     useEffect(() => {
         // touch AsyncStorage once (defensive; FirstRunTutorial persists itself)
-        AsyncStorage.getItem("tutorial.done").then(() => { });
+        AsyncStorage.getItem("tutorial.done").then(() => {});
     }, []);
 
     // Pinch handlers
@@ -122,12 +240,14 @@ export default function Flipper() {
     const onPinchEvent = ({ nativeEvent }: any) => {
         const nextUnclamped = lastScaleRef.current * nativeEvent.scale;
         const next = Math.max(MIN_SCALE, Math.min(nextUnclamped, MAX_SCALE));
-        renderScale.setValue(next); // mark zoomed flag immediately for UI (labels hidden while zoomed)
+        renderScale.setValue(next); // labels hidden while zoomed
         setIsZoomed(next > 1.001);
 
         // TUTORIAL: mark zoom completed when scale > 1×
         if (next > 1.001 && !tutorial.zoomedIn) {
-            setTutorial((prev) => ({ ...prev, zoomedIn: true }));
+            const upd = { zoomedIn: true };
+            setTutorial((p) => ({ ...p, ...upd }));
+            saveProgress(upd);
         }
     };
     const onPinchStateChange = ({ nativeEvent }: any) => {
@@ -151,7 +271,9 @@ export default function Flipper() {
 
                     // TUTORIAL: mark zoomed out after having zoomed in
                     if (!tutorial.zoomedOut && tutorial.zoomedIn) {
-                        setTutorial((prev) => ({ ...prev, zoomedOut: true }));
+                        const upd = { zoomedOut: true };
+                        setTutorial((p) => ({ ...p, ...upd }));
+                        saveProgress(upd);
                     }
                 }
             });
@@ -206,7 +328,9 @@ export default function Flipper() {
                 }
                 // TUTORIAL: mark rotated after a non-trivial angle
                 if (Math.abs(lastRotationRef.current) >= 0.01 && !tutorial.rotated) {
-                    setTutorial((prev) => ({ ...prev, rotated: true }));
+                    const upd = { rotated: true };
+                    setTutorial((p) => ({ ...p, ...upd }));
+                    saveProgress(upd);
                 }
             });
         }
@@ -229,7 +353,9 @@ export default function Flipper() {
             // TUTORIAL: two single taps required
             tapCounterRef.current += 1;
             if (tapCounterRef.current >= 2 && !tutorial.tapTwice) {
-                setTutorial((prev) => ({ ...prev, tapTwice: true }));
+                const upd = { tapTwice: true };
+                setTutorial((p) => ({ ...p, ...upd }));
+                saveProgress(upd);
             }
         }
     };
@@ -243,7 +369,9 @@ export default function Flipper() {
 
                 // TUTORIAL: mark double tap
                 if (!tutorial.doubleTapped) {
-                    setTutorial((prev) => ({ ...prev, doubleTapped: true }));
+                    const upd = { doubleTapped: true };
+                    setTutorial((p) => ({ ...p, ...upd }));
+                    saveProgress(upd);
                 }
             }
         }
@@ -252,22 +380,17 @@ export default function Flipper() {
     // --- Bottom sheet state ---
     const [isInfoVisible, setIsInfoVisible] = useState(false);
     const bottomSheetAnim = useRef(new Animated.Value(0)).current;
-    const coinShiftAnim = useRef(new Animated.Value(0)).current; // 0 = normal, 1 = shifted up, for info sheet
+    const coinShiftAnim = useRef(new Animated.Value(0)).current; // 0 normal, 1 shifted up
     const dragY = useRef(new Animated.Value(0)).current;
 
     // Coin flip logic and animation
     const flipCoin = async () => {
         setIsFlipping(true);
-        // Animation parameters
-        const MAX_ROTATIONS_LOCAL = 30; // maximum amount of rotations the coin can do
+        const MAX_ROTATIONS_LOCAL = 30;
         const MIN_ROTATIONS_LOCAL = 15;
-        const rotations = Math.max(
-            Math.floor(Math.random() * MAX_ROTATIONS_LOCAL) + 1,
-            MIN_ROTATIONS_LOCAL
-        );
-        const duration = 1500; // milliseconds
+        const rotations = Math.max(Math.floor(Math.random() * MAX_ROTATIONS_LOCAL) + 1, MIN_ROTATIONS_LOCAL);
+        const duration = 1500;
 
-        // Before starting a new flip, cancel any old timers to avoid stray toggles
         clearFlipTimers();
         // Hide previous result while a new flip is in progress
         setLastResult(null);
@@ -278,8 +401,7 @@ export default function Flipper() {
             easing: Easing.linear,
             useNativeDriver: true,
         }).start(() => {
-            currentFlip = 1;
-            setFlipped(currentFlip);
+            setFlipped(1);
             flipAnimation.setValue(0);
             // Done with all timers for this flip
             clearFlipTimers();
@@ -289,8 +411,7 @@ export default function Flipper() {
             let currentCoin = coinSide;
             const alreadyInWallet = coins.some((c) => c.id === coin.id);
             if (!alreadyInWallet) {
-                // Show notification that the coin has been added to the wallet
-                addCoin(coin, currentCoin);
+                addCoin(coin as any, currentCoin);
                 Toast.show({
                     type: "success",
                     text1: "Münt on lisatud rahakotti",
@@ -299,7 +420,7 @@ export default function Flipper() {
             }
         });
 
-        let step = duration / (rotations + 1);
+        const step = duration / (rotations + 1);
         let currentCoin = coinSide;
         let currentFlip = flipped;
 
@@ -340,28 +461,25 @@ export default function Flipper() {
         // stop the animated rotateX and reset pose
         try {
             flipAnimation.stopAnimation(() => {
-                flipAnimation.setValue(0); // rotateX -> 0deg
-                setFlipped(1); // scaleY -> 1 (upright)
+                flipAnimation.setValue(0);
+                setFlipped(1);
             });
-        } catch { }
+        } catch {}
         setIsFlipping(false);
     };
 
     // --- Bottom sheet animations ---
     const openInfoSheet = () => {
-        // If a flip is in progress (or just ended), force a stable, upright coin
-        if (isFlipping) {
-            forceCoinUpright();
-        } else {
-            // Even if not flipping, late timers can still bite
-            forceCoinUpright();
-        }
+        // normalize pose before animating the sheet
+        forceCoinUpright();
 
         setIsInfoVisible(true);
 
         // TUTORIAL: mark info opened
         if (!tutorial.openedInfo) {
-            setTutorial((prev) => ({ ...prev, openedInfo: true }));
+            const upd = { openedInfo: true };
+            setTutorial((p) => ({ ...p, ...upd }));
+            saveProgress(upd);
         }
 
         Animated.parallel([
@@ -397,56 +515,73 @@ export default function Flipper() {
         ]).start(() => setIsInfoVisible(false));
     };
 
-    // Coin must be at its initial state to allow info swipe
+    // Allow info swipe only when coin is at initial state
     const isCoinAtStart = () =>
         lastScaleRef.current <= 1.001 &&
         Math.abs(lastRotationRef.current) < 0.01 &&
         Math.abs(panOffset.current.x) < 0.5 &&
         Math.abs(panOffset.current.y) < 0.5;
 
-    // --- Swipe-up gesture anywhere on screen ---
+    // --- Full-screen single-finger swipe detector (up to open sheet, left to wallet) ---
     const swipeResponder = useRef(
         PanResponder.create({
             // Don't claim the gesture at start
             onStartShouldSetPanResponder: () => false,
 
-            // Claim only when: single finger, coin at start, significant vertical move, and it's an upward swipe
+            // Claim only when: single finger, coin at start, significant vertical/horizontal move
             onMoveShouldSetPanResponder: (_, g) => {
                 const singleTouch = (g.numberActiveTouches ?? 1) === 1;
-                const bigVerticalMove = Math.abs(g.dy) > 20 && Math.abs(g.dy) > Math.abs(g.dx);
-                const swipeUp = g.dy < -20;
-                return singleTouch && isCoinAtStart() && bigVerticalMove && swipeUp;
+                const bigMove = Math.abs(g.dx) > 20 || Math.abs(g.dy) > 20;
+                // react only in neutral pose
+                return singleTouch && bigMove && isCoinAtStart();
             },
 
             // Allow RNGH handlers to take over if they want (reduces deadlocks)
             onPanResponderTerminationRequest: () => true,
-
             onPanResponderRelease: (_, g) => {
-                if (isCoinAtStart() && g.dy < -80) {
-                    // normalize pose before sheet animation to avoid “drop & flip”
+                const absX = Math.abs(g.dx);
+                const absY = Math.abs(g.dy);
+                // vertical priority (info sheet)
+                if (g.dy < -80 && absY > absX) {
                     forceCoinUpright();
                     openInfoSheet();
+                    return;
+                }
+                // horizontal: right-to-left => go to wallet
+                if (g.dx < -80 && absX > absY) {
+                    // TUTORIAL: mark swipeWallet as completed and persist
+                    setTutorial((prev) => {
+                        const next = { ...prev, swipeWallet: true };
+                        saveProgress({ swipeWallet: true });
+                        return next;
+                    });
+                    // hand off to wallet tutorial
+                    router.push({ pathname: "/wallet", params: { teach: "1" } });
+                    return;
                 }
             },
         })
     ).current;
 
-    // --- Drag-down gesture on the sheet ---
-    const sheetPanResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onPanResponderMove: (_, gesture) => {
-                if (gesture.dy > 0) dragY.setValue(gesture.dy);
-            },
-            onPanResponderRelease: (_, gesture) => {
-                if (gesture.dy > 100) {
-                    closeInfoSheet();
-                } else {
-                    Animated.spring(dragY, { toValue: 0, useNativeDriver: true }).start();
-                }
-            },
-        })
-    ).current;
+    // If navigated with ?openInfo=1, open the sheet after coin is set
+    useEffect(() => {
+        if (routeParams?.openInfo === "1") {
+            requestAnimationFrame(() => openInfoSheet());
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [routeParams?.openInfo, coin?.id]);
+
+    // "Mine mängima" action from the last tutorial step
+    const handleTutorialFinish = async () => {
+        // If info is open, close it; otherwise just hide tutorial
+        if (isInfoVisible) {
+            closeInfoSheet();
+        }
+        const upd = { last: true };
+        setTutorial((p) => ({ ...p, ...upd }));
+        saveProgress(upd);
+        await AsyncStorage.setItem("tutorial.done", "1"); // await to avoid race on navigation/redraw
+    };
 
     // --- Render ---
     return (
@@ -543,10 +678,7 @@ export default function Flipper() {
             {/* bottom area holds the result; hidden while zoomed */}
             <View style={styles.bottomArea}>
                 {lastResult !== null && !isZoomed && (
-                    <BottomArea
-                        side={lastResult}
-                        predicted={resultSource === "flip" ? pendingPrediction : null}
-                    />
+                    <BottomArea side={lastResult} predicted={resultSource === "flip" ? pendingPrediction : null} />
                 )}
             </View>
 
@@ -596,7 +728,6 @@ export default function Flipper() {
             {/* Bottom sheet (animated) */}
             {isInfoVisible && (
                 <Animated.View
-                    {...sheetPanResponder.panHandlers}
                     style={[
                         styles.bottomSheet,
                         {
@@ -656,11 +787,18 @@ export default function Flipper() {
             )}
 
             {/* TUTORIAL OVERLAY */}
-            <FirstRunTutorial
-                progress={tutorial}
-                onSkipStep={handleSkipStep}
-                onSkipAll={handleSkipAll}
-            />
+            {tutHydrated && !tutorialDone && (
+                <FirstRunTutorial
+                    progress={tutorial}
+                    onSkipStep={(step) => {
+                        const next = { ...tutorial, [step]: true };
+                        setTutorial(next);
+                        saveProgress({ [step]: true } as Partial<TutorialProgress>);
+                    }}
+                    onSkipAll={handleSkipAll}
+                    onFinish={handleTutorialFinish}
+                />
+            )}
         </View>
     );
 }
