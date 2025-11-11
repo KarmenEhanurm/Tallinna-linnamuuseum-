@@ -1,17 +1,14 @@
 import { FirebaseOptions, initializeApp } from 'firebase/app';
-import { getAnalytics } from 'firebase/analytics';
-import Config from 'react-native-config';
 
 // Configuration values are taken from the root .env file
 const firebaseConfig: FirebaseOptions = {
-    apiKey: Config.API_KEY,
-    authDomain: Config.AUTH_DOMAIN,
-    projectId: Config.PROJECT_ID,
-    storageBucket: Config.STORAGE_BUCKET,
-    messagingSenderId: Config.MESSAGING_SENDER_ID,
-    appId: Config.APP_ID,
-    measurementId: Config.MEASUREMENT_ID
+    apiKey: "AIzaSyCLILz9pxGprYQrBQprb573He40lQfpRuI",
+    authDomain: "coin-discoverer.firebaseapp.com",
+    projectId: "coin-discoverer",
+    storageBucket: "coin-discoverer.firebasestorage.app",
+    messagingSenderId: "430038767083",
+    appId: "1:430038767083:web:e293c5b7224d58d4f435ae",
+    measurementId: "G-E609FZLLQZ"
 };
 
 export const app = initializeApp(firebaseConfig);
-export const analytics = getAnalytics(app);
