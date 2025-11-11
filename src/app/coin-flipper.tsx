@@ -509,11 +509,7 @@ export default function Flipper() {
                                             style={[styles.coinLayer, isInfoVisible && styles.coinLayerRaised]}
                                         >
                                             <Animated.Image
-                                                source={
-                                                    coinSide === CoinSide.HEADS
-                                                        ? coin.headImageResource
-                                                        : coin.tailsImageResource
-                                                }
+                                                source={{ uri: coinSide === CoinSide.HEADS ? coin.headImageResource : coin.tailsImageResource }}
                                                 style={[
                                                     styles.coinImage,
                                                     {

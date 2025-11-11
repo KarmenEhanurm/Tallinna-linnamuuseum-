@@ -17,7 +17,7 @@ export default function Wallet() {
         <View style={styles.container}>
             {/* Screen title*/}
             <Text style={styles.walletTitle}>Minu Rahakott</Text>
-    
+
             {/* If wallet is empty, show prompt */}
             {!coin ? (
                 <View style={styles.walletEmptyState}>
@@ -29,11 +29,11 @@ export default function Wallet() {
             ) : (
                 // If coin exists, show draggable coin centered
                 <View style={styles.walletCoinCenterArea}>
-        <DraggableCoin
-            coin={coin}
-            updateCoinPosition={updateCoinPosition}
-        />
-    </View>
+                    <DraggableCoin
+                        coin={coin}
+                        updateCoinPosition={updateCoinPosition}
+                    />
+                </View>
             )}
         </View>
     );
@@ -100,7 +100,7 @@ function DraggableCoin({ coin, updateCoinPosition }: { coin: any, updateCoinPosi
             ]}
         >
             <Image
-                source={imageSource}
+                source={{ uri: imageSource }}
                 style={styles.walletCoinImage}
                 resizeMode="contain"
             />
