@@ -10,10 +10,6 @@ export const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: "rgb(23, 24, 35)",
     },
-    coinImage: {
-        width: 200,
-        height: 200,
-    },
     coinLayer: {
         // default layer for coin
         zIndex: 20, // above bottomSheet
