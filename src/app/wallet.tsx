@@ -10,8 +10,16 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 export default function Wallet() {
     const { coins, updateCoinPosition } = useWallet();
 
-    // Show only first coin in the wallet (if exists)
-    const coin = coins[0];
+    let coinElements = [];
+    for (let coin of coins) {
+        coinElements.push(
+            <DraggableCoin
+                key={coin.id}
+                coin={coin}
+                updateCoinPosition={updateCoinPosition}
+            />
+        )
+    }
 
     return (
         <View style={styles.container}>
@@ -19,7 +27,7 @@ export default function Wallet() {
             <Text style={styles.walletTitle}>Minu Rahakott</Text>
 
             {/* If wallet is empty, show prompt */}
-            {!coin ? (
+            {coins.length == 0 ? (
                 <View style={styles.walletEmptyState}>
                     <Text style={styles.walletEmptyText}>Rahakott on tühi</Text>
                     <Text style={styles.walletEmptySubtext}>
@@ -29,10 +37,7 @@ export default function Wallet() {
             ) : (
                 // If coin exists, show draggable coin centered
                 <View style={styles.walletCoinCenterArea}>
-                    <DraggableCoin
-                        coin={coin}
-                        updateCoinPosition={updateCoinPosition}
-                    />
+                    {coinElements}
                 </View>
             )}
         </View>
