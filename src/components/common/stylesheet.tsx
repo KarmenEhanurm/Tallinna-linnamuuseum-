@@ -11,7 +11,8 @@ export const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: "center",
-        justifyContent: "center"
+        justifyContent: "center",
+        backgroundColor: "rgb(23, 24, 35)",
     },
     coinImage: {
         width: 200,
@@ -23,7 +24,8 @@ export const styles = StyleSheet.create({
         paddingTop: 12,
     },
     resultText: {
-        fontWeight: "700"
+        fontWeight: "700",
+        color: "#e7e3e3ff",
     },
     modalBackdrop: {
         flex: 1,
@@ -35,7 +37,7 @@ export const styles = StyleSheet.create({
     modalCard: {
         width: "100%",
         maxWidth: 540,
-        backgroundColor: "#f4f4f4ff",
+        backgroundColor: "#ccd9d5ff",
         borderRadius: 16,
         padding: 16,
         borderWidth: 1,
@@ -57,7 +59,7 @@ export const styles = StyleSheet.create({
     choiceCard: {
         width: CARD_WIDTH,
         alignItems: "center",
-        backgroundColor: "#e4e4e4ff",
+        backgroundColor: "rgb(23, 24, 35)",
         borderRadius: 14,
         padding: 12,
         borderWidth: 1,
@@ -95,7 +97,7 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.85)", // ← semi-transparent white
+    backgroundColor: "rgba(23, 24, 35, 0.85)", // ← semi-transparent white
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingTop: 10,
@@ -143,7 +145,7 @@ export const styles = StyleSheet.create({
     },
 
     infoTitle: {
-    fontWeight: "600",
+    fontWeight: "100",
     fontSize: 16,
     marginBottom: 6,
     },
@@ -154,25 +156,25 @@ export const styles = StyleSheet.create({
     color: "#000",
     },
 
-
+// Wallet Styles
         walletTitle: {
         fontSize: 28,
         fontWeight: "700",
         textAlign: "center",
         marginTop: 20,
         marginBottom: 8,
-        color: "#2b2b2b",
+        color: "#e7e3e3ff",
     },
     walletSubtitle: {
         fontSize: 16,
         textAlign: "center",
         marginBottom: 16,
-        color: "#747678",
+        color: "#caccceff",
         fontWeight: "500",
     },
     walletArea: {
         flex: 1,
-        backgroundColor: "#f4f4f4",
+        backgroundColor: "rgb(23, 24, 35)",
         margin: 16,
         borderRadius: 16,
         position: "relative",
@@ -196,7 +198,7 @@ export const styles = StyleSheet.create({
     walletEmptyText: {
         fontSize: 20,
         fontWeight: "600",
-        color: "#91603A",
+        color: "#d68f59ff",
         marginBottom: 8,
     },
     walletEmptySubtext: {

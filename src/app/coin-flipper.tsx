@@ -354,7 +354,7 @@
     // --- Render ---
     return (
         <View style={styles.container} {...swipeResponder.panHandlers}>
-        <Text style={{ fontWeight: "500", fontSize: 24 }}>
+        <Text style={{ fontWeight: "500", fontSize: 24, color: "#e7e3e3ff" }}>
             {coin.title.charAt(0).toLocaleUpperCase() + coin.title.slice(1)}
         </Text>
 {/* top spacer keeps coin centered even when result appears */}
