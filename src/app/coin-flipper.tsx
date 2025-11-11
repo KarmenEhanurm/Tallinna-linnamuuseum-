@@ -41,7 +41,7 @@ export default function Flipper() {
     let initialSide = Math.random() < 0.5 ? CoinSide.HEADS : CoinSide.TAILS;
     const [coinSide, setCoinSide] = useState(initialSide);
     const [flipped, setFlipped] = useState(1);
-    let currentFlip = flipped;
+    const [isFlipping, setIsFlipping] = useState(false);
 
     const flipAnimation = useRef(new Animated.Value(0)).current;
     const coin = new CoinService().generateNewCoin();
@@ -257,6 +257,7 @@ export default function Flipper() {
 
     // Coin flip logic and animation
     const flipCoin = async () => {
+        setIsFlipping(true);  
         // Animation parameters
         const MAX_ROTATIONS_LOCAL = 30; // maximum amount of rotations the coin can do
         const MIN_ROTATIONS_LOCAL = 15;
@@ -282,6 +283,7 @@ export default function Flipper() {
             flipAnimation.setValue(0);
             // Done with all timers for this flip
             clearFlipTimers();
+            setIsFlipping(false);
 
             // popup only if coin is added to the wallet
             let currentCoin = coinSide;
@@ -332,8 +334,29 @@ export default function Flipper() {
         requestAnimationFrame(() => flipCoin());
     };
 
+    const forceCoinUpright = () => {
+        // kill any remaining tick timers
+        clearFlipTimers();
+        // stop the animated rotateX and reset pose
+        try {
+            flipAnimation.stopAnimation(() => {
+            flipAnimation.setValue(0); // rotateX -> 0deg
+            setFlipped(1); // scaleY -> 1 (upright)
+            });
+        } catch {}
+        setIsFlipping(false);
+    };
+
     // --- Bottom sheet animations ---
     const openInfoSheet = () => {
+        // If a flip is in progress (or just ended), force a stable, upright coin
+        if (isFlipping) {
+            forceCoinUpright();
+        } else {
+            // Even if not flipping, late timers can still bite
+            forceCoinUpright();
+        }
+
         setIsInfoVisible(true);
 
     // TUTORIAL: mark info opened
@@ -399,7 +422,11 @@ export default function Flipper() {
             onPanResponderTerminationRequest: () => true,
 
             onPanResponderRelease: (_, g) => {
-                if (isCoinAtStart() && g.dy < -80) openInfoSheet();
+                if (isCoinAtStart() && g.dy < -80) {
+                    // normalize pose before sheet animation to avoid “drop & flip”
+                    forceCoinUpright();
+                    openInfoSheet();
+                }
             },
         })
     ).current;
