@@ -198,10 +198,6 @@ export const styles = StyleSheet.create({
         height: 80,
         zIndex: 10,
     },
-    walletCoinImage: {
-        width: 80,
-        height: 80,
-    },
     walletEmptyState: {
         flex: 1,
         justifyContent: "center",

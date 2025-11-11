@@ -89,6 +89,8 @@ function DraggableCoin({ coin, updateCoinPosition }: { coin: any, updateCoinPosi
         ? coin.headImageResource
         : coin.tailsImageResource;
 
+    const coinSize = 160 * coin.diameterMm / 25.4
+
     // Render animated, draggable coin image
     return (
         <Animated.View
@@ -106,7 +108,10 @@ function DraggableCoin({ coin, updateCoinPosition }: { coin: any, updateCoinPosi
         >
             <Image
                 source={{ uri: imageSource }}
-                style={styles.walletCoinImage}
+                style={{
+                    width: coinSize,
+                    height: coinSize
+                }}
                 resizeMode="contain"
             />
         </Animated.View>
