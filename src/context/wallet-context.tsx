@@ -17,13 +17,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [coins, setCoins] = useState<WalletCoin[]>([]);
     // Add a coin to the wallet only if the coin is not yet added
     const addCoin = (coin: Coin, side: CoinSide) => {
-    const alreadyInWallet = WalletService.getCoins().some(c => c.id === coin.id);
-    if (!alreadyInWallet) {
-    // Calls service to add coin and updates context state
-        WalletService.addCoin(coin, side);
-        setCoins(WalletService.getCoins());
-    }
-};
+        const alreadyInWallet = WalletService.getCoins().some(c => c.id === coin.id);
+        if (!alreadyInWallet) {
+            // Calls service to add coin and updates context state
+            WalletService.addCoin(coin, side);
+            setCoins(WalletService.getCoins());
+        }
+    };
     // Update a coin's position in the wallet when it is dragged
     const updateCoinPosition = (coinId: string, x: number, y: number) => {
         WalletService.updateCoinPosition(coinId, x, y);
