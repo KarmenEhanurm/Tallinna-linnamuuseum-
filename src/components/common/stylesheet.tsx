@@ -3,10 +3,6 @@
  */
 import { Dimensions, StyleSheet } from "react-native";
 
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = Math.min(168, Math.floor((width - 64) / 2));
-
-
 export const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -53,18 +49,22 @@ export const styles = StyleSheet.create({
     choicesRow: {
         width: "100%",
         flexDirection: "row",
+        flexWrap: "wrap",
         justifyContent: "space-between",
+        rowGap: 12,
+        columnGap: 12,
         marginBottom: 12,
     },
     choiceCard: {
-        width: CARD_WIDTH,
+        flexBasis: "48%",
+        maxWidth: "48%",
+        minWidth: 120, // safety for very small phones
         alignItems: "center",
         backgroundColor: "rgb(23, 24, 35)",
         borderRadius: 14,
         padding: 12,
         borderWidth: 1,
         borderColor: "#ffffff14",
-        marginHorizontal: 6,
     },
     choiceLabel: {
         color: "#91603A",
@@ -217,7 +217,6 @@ export const styles = StyleSheet.create({
         position: "absolute",
         top: 0, left: 0, right: 0,
         // don't cover bottom so user can swipe from bottom edge comfortably
-        // height omitted to keep non-blocking; overlay itself doesn't eat touches
         alignItems: "center",
         justifyContent: "flex-start",
         paddingTop: 12,
@@ -229,6 +228,7 @@ export const styles = StyleSheet.create({
         backgroundColor: "#B4CECC",
         borderRadius: 16,
         padding: 16,
+        paddingTop: 20,
         borderWidth: 1,
         borderColor: "#ffffff0f",
         // subtle elevation
@@ -250,6 +250,8 @@ export const styles = StyleSheet.create({
         color: "#2b2b2bff",
         textAlign: "center",
         lineHeight: 20,
+        paddingRight: 44,
+        paddingLeft: 44,
     },
     tutorialActions: {
         marginTop: 10,
@@ -276,7 +278,6 @@ export const styles = StyleSheet.create({
         backgroundColor: "#B4CECC",
         alignItems: "center",
         justifyContent: "center",
-
     },
     tutorialCloseText: {
         color: "#2b2b2bff",

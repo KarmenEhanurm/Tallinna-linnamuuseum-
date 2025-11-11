@@ -143,11 +143,16 @@ export default function Flipper() {
             lastScaleRef.current = clamped;
 
             if (clamped === 1) {
-            translate.setValue({ x: 0, y: 0 });
-            panOffset.current = { x: 0, y: 0 };
-            renderRotation.setValue(0);
-            lastRotationRef.current = 0;
-            setIsZoomed(false);
+                translate.setValue({ x: 0, y: 0 });
+                panOffset.current = { x: 0, y: 0 };
+                renderRotation.setValue(0);
+                lastRotationRef.current = 0;
+                setIsZoomed(false);
+
+                // TUTORIAL: mark zoomed out after having zoomed in
+                if (!tutorial.zoomedOut && tutorial.zoomedIn) {
+                    setTutorial((prev) => ({ ...prev, zoomedOut: true }));
+                }
             }
         });
         }
@@ -470,29 +475,29 @@ export default function Flipper() {
                         styles.coinImage,
                         {
                             transform: [
-                            { translateX: translate.x },
-                            { translateY: translate.y },
-                            { scale: renderScale },
-                            {
-                                rotate: renderRotation.interpolate({
-                                inputRange: [-Math.PI * 2, Math.PI * 2],
-                                outputRange: ["-6.2832rad", "6.2832rad"],
-                                }),
-                            },
-                            { scaleY: flipped },
-                            {
-                                rotateX: flipAnimation.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: ["0deg", "180deg"],
-                                }),
-                            },
-                            // coin shift
-                            {
-                                translateY: coinShiftAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [0, -230], // coin shifts 230px
-                                }),
-                            },
+                                { translateX: translate.x },
+                                { translateY: translate.y },
+                                { scale: renderScale },
+                                {
+                                    rotate: renderRotation.interpolate({
+                                    inputRange: [-Math.PI * 2, Math.PI * 2],
+                                    outputRange: ["-6.2832rad", "6.2832rad"],
+                                    }),
+                                },
+                                { scaleY: flipped },
+                                {
+                                    rotateX: flipAnimation.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: ["0deg", "180deg"],
+                                    }),
+                                },
+                                // coin shift
+                                {
+                                    translateY: coinShiftAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0, -230], // coin shifts 230px
+                                    }),
+                                },
                             ],
                         },
                         ]}

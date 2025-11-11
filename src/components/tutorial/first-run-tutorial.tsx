@@ -34,7 +34,7 @@ const TEXTS: Record<TutorialStepKey, string> = {
     tapTwice:
         "Kliki mündil, et külge vahetada.\nVaheta külge kaks korda, et näha järgmist juhist.",
     zoomedIn:
-        "Suumi münti kahe sõrmega, et vaadata lähemalt.",
+        "Suurenda münti kahe sõrmega, et vaadata lähemalt.",
     rotated:
         "Pööra münti kahe sõrmega, et vaadata münti eri nurkade alt.",
     zoomedOut:
@@ -70,19 +70,22 @@ export function FirstRunTutorial({
         walletInfo: false,
     });
 
+    // top-level component state
+    const [hydrated, setHydrated] = useState(false);
+
     // Load persisted flags once
     useEffect(() => {
         (async () => {
         try {
             const rawDone = await AsyncStorage.getItem(STORAGE_DONE_KEY);
             const rawSkips = await AsyncStorage.getItem(STORAGE_SKIPS_KEY);
+            // in the first useEffect after loading AsyncStorage:
             if (rawDone === "1") setDone(true);
-            if (rawSkips) {
-                const parsed = JSON.parse(rawSkips);
-                setSkips((prev) => ({ ...prev, ...parsed }));
-            }
+            if (rawSkips) setSkips((prev) => ({ ...prev, ...JSON.parse(rawSkips) }));
         } catch {
             // ignore
+        } finally {
+            setHydrated(true); // mark loaded
         }
         })();
     }, []);
@@ -109,7 +112,7 @@ export function FirstRunTutorial({
         return null;
     }, [progress, skips, done]);
 
-    const visible = visibleOverride ?? (!!nextStep && !done);
+    const visible = hydrated && (visibleOverride ?? (!!nextStep && !done));
     if (!visible || !nextStep) return null;
 
     const handleSkipStep = async () => {
@@ -140,7 +143,7 @@ export function FirstRunTutorial({
             ]}
             pointerEvents="auto"
         >
-            <Text style={styles.tutorialTitle}>Kuidas alustada</Text>
+            {nextStep === "tapTwice" && (<Text style={styles.tutorialTitle}>Kuidas alustada</Text>)}
             <Text style={styles.tutorialText}>{TEXTS[nextStep]}</Text>
 
             {/* Bottom-right: skip current step */}
