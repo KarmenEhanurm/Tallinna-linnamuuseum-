@@ -47,9 +47,11 @@ export default function Flipper() {
     const flipAnimation = useRef(new Animated.Value(0)).current;
 
     const [coin, setCoin] = useState<Coin | null>(null);
+    const [coinSize, setCoinSize] = useState<number>(200);
     const fetchData = async () => {
         const generatedCoin = await coinService.generateNewCoin();
         setCoin(generatedCoin);
+        setCoinSize(160 * generatedCoin.diameterMm / 25.4)
     };
 
     useEffect(() => {
@@ -297,14 +299,14 @@ export default function Flipper() {
 
             // popup only if coin is added to the wallet
             let currentCoin = coinSide;
-            const alreadyInWallet = coins.some((c) => c.id === coin.id);
-            if (!alreadyInWallet) {
+            const alreadyInWallet = coins.some((c) => c.id === coin?.id);
+            if (!alreadyInWallet && coin !== null) {
                 // Show notification that the coin has been added to the wallet
                 addCoin(coin, currentCoin);
                 Toast.show({
                     type: "success",
                     text1: "Münt on lisatud rahakotti",
-                    text2: `Münt '${coin.title}' on lisatud teie rahakotti 🪙`,
+                    text2: `Münt '${coin?.title}' on lisatud teie rahakotti 🪙`,
                 });
             }
         });
@@ -511,7 +513,10 @@ export default function Flipper() {
                                             <Animated.Image
                                                 source={{ uri: coinSide === CoinSide.HEADS ? coin.headImageResource : coin.tailsImageResource }}
                                                 style={[
-                                                    styles.coinImage,
+                                                    {
+                                                        width: coinSize,
+                                                        height: coinSize
+                                                    },
                                                     {
                                                         transform: [
                                                             { translateX: translate.x },
@@ -641,7 +646,7 @@ export default function Flipper() {
                                 <View style={styles.infoCard}>
                                     <Text style={styles.infoTitle}>Mõõdud</Text>
                                     <Text style={styles.infoValue}>
-                                        Läbimõõt: {coin.diameter ?? "—"} mm{"\n"}Kaal: {coin.weight ?? "—"} g
+                                        Läbimõõt: {coin.diameterMm ?? "—"} mm{"\n"}Kaal: {coin.weight ?? "—"} g
                                     </Text>
                                 </View>
 
