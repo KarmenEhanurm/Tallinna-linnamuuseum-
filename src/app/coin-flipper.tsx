@@ -1,5 +1,5 @@
-    import { useState, useRef, useEffect } from "react";
-    import {
+import { useState, useRef, useEffect } from "react";
+import {
     View,
     Text,
     TouchableOpacity,
@@ -9,32 +9,39 @@
     Pressable,
     Easing,
     PanResponder,
-    } from "react-native";
-    import {
+} from "react-native";
+import {
     TapGestureHandler,
     PinchGestureHandler,
     PanGestureHandler,
     RotationGestureHandler,
     State,
-    } from "react-native-gesture-handler";
-    import { CoinService } from "../service/coin-service";
-    import { CoinSide } from "../data/entity/coin";
-    import { styles } from "../components/common/stylesheet";
-    import { BottomArea } from "../components/specific/coin-flipper/bottom-area";
-    import Toast from "react-native-toast-message";
-    import { useWallet } from "../context/wallet-context";
+} from "react-native-gesture-handler";
+import { CoinService } from "../service/coin-service";
+import { CoinSide } from "../data/entity/coin";
+import { styles } from "../components/common/stylesheet";
+import { BottomArea } from "../components/specific/coin-flipper/bottom-area";
+import Toast from "react-native-toast-message";
+import { useWallet } from "../context/wallet-context";
+// TUTORIAL: imports
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+    FirstRunTutorial,
+    TutorialProgress,
+    TutorialStepKey,
+} from "../components/tutorial/first-run-tutorial";
 
-    const MIN_SCALE = 1;
-    const MAX_SCALE = 8;
+const MIN_SCALE = 1;
+const MAX_SCALE = 8;
 
-    export default function Flipper() {
+export default function Flipper() {
     const { addCoin, coins } = useWallet();
 
     // initial side
     let initialSide = Math.random() < 0.5 ? CoinSide.HEADS : CoinSide.TAILS;
     const [coinSide, setCoinSide] = useState(initialSide);
     const [flipped, setFlipped] = useState(1);
-    let currentFlip = flipped;
+    const [isFlipping, setIsFlipping] = useState(false);
 
     const flipAnimation = useRef(new Animated.Value(0)).current;
     const coin = new CoinService().generateNewCoin();
@@ -75,6 +82,41 @@
         timersRef.current = [];
     };
 
+    // TUTORIAL: progress & helpers
+    const [tutorial, setTutorial] = useState<TutorialProgress>({
+        tapTwice: false,
+        zoomedIn: false,
+        rotated: false,
+        zoomedOut: false,
+        doubleTapped: false,
+        openedInfo: false,
+        swipeWallet: false,
+        dragCoin: false,
+        walletInfo: false,
+    });
+    const tapCounterRef = useRef(0);
+
+    const handleSkipStep = (step: TutorialStepKey) => {
+        setTutorial((prev) => ({ ...prev, [step]: true }));
+    };
+    const handleSkipAll = () => {
+        setTutorial({
+        tapTwice: true,
+        zoomedIn: true,
+        rotated: true,
+        zoomedOut: true,
+        doubleTapped: true,
+        openedInfo: true,
+        swipeWallet: true,
+        dragCoin: true,
+        walletInfo: false,
+        });
+    };
+    useEffect(() => {
+        // touch AsyncStorage once (defensive; FirstRunTutorial persists itself)
+        AsyncStorage.getItem("tutorial.done").then(() => {});
+    }, []);
+
     // Pinch handlers
     // Pinch: live clamp to [1, MAX_SCALE]
     const onPinchEvent = ({ nativeEvent }: any) => {
@@ -82,28 +124,35 @@
         const next = Math.max(MIN_SCALE, Math.min(nextUnclamped, MAX_SCALE));
         renderScale.setValue(next); // mark zoomed flag immediately for UI (labels hidden while zoomed)
         setIsZoomed(next > 1.001);
+
+        // TUTORIAL: mark zoom completed when scale > 1×
+        if (next > 1.001 && !tutorial.zoomedIn) {
+            setTutorial((prev) => ({ ...prev, zoomedIn: true }));
+        }
     };
     const onPinchStateChange = ({ nativeEvent }: any) => {
         if (
-        nativeEvent.state === State.END ||
-        nativeEvent.state === State.CANCELLED ||
-        nativeEvent.state === State.FAILED 
+            nativeEvent.state === State.END ||
+            nativeEvent.state === State.CANCELLED ||
+            nativeEvent.state === State.FAILED
         ) {
         // finalize the scale
         renderScale.stopAnimation((val: number) => {
-            const clamped = Math.max(
-            MIN_SCALE,
-            Math.min(val ?? lastScaleRef.current, MAX_SCALE)
-            );
+            const clamped = Math.max(MIN_SCALE, Math.min(val ?? lastScaleRef.current, MAX_SCALE));
             renderScale.setValue(clamped);
             lastScaleRef.current = clamped;
 
             if (clamped === 1) {
-            translate.setValue({ x: 0, y: 0 });
-            panOffset.current = { x: 0, y: 0 };
-            renderRotation.setValue(0);
-            lastRotationRef.current = 0;
-            setIsZoomed(false);
+                translate.setValue({ x: 0, y: 0 });
+                panOffset.current = { x: 0, y: 0 };
+                renderRotation.setValue(0);
+                lastRotationRef.current = 0;
+                setIsZoomed(false);
+
+                // TUTORIAL: mark zoomed out after having zoomed in
+                if (!tutorial.zoomedOut && tutorial.zoomedIn) {
+                    setTutorial((prev) => ({ ...prev, zoomedOut: true }));
+                }
             }
         });
         }
@@ -143,17 +192,21 @@
     const onRotateStateChange = ({ nativeEvent }: any) => {
         if (!isZoomed) return;
         if (
-        nativeEvent.state === State.END ||
-        nativeEvent.state === State.CANCELLED ||
-        nativeEvent.state === State.FAILED
+            nativeEvent.state === State.END ||
+            nativeEvent.state === State.CANCELLED ||
+            nativeEvent.state === State.FAILED
         ) {
             // accumulate rotation
         renderRotation.stopAnimation((val: number) => {
             lastRotationRef.current = val ?? lastRotationRef.current;
             // snap tiny angles to 0 for neatness when nearly straight
             if (Math.abs(lastRotationRef.current) < 0.01) {
-            lastRotationRef.current = 0;
-            renderRotation.setValue(0);
+                lastRotationRef.current = 0;
+                renderRotation.setValue(0);
+            }
+            // TUTORIAL: mark rotated after a non-trivial angle
+            if (Math.abs(lastRotationRef.current) >= 0.01 && !tutorial.rotated) {
+                setTutorial((prev) => ({ ...prev, rotated: true }));
             }
         });
         }
@@ -163,15 +216,21 @@
     // Single tap: toggle side; sync label, drop verdict; CANCEL any leftover flip timers
     const onSingleTap = ({ nativeEvent }: any) => {
         if (nativeEvent.state === State.END) {
-        clearFlipTimers(); // prevent late timeouts from previous flip
-        setFlipped(1); // ensure upright (prevents upside-down artifact)
-        flipAnimation.stopAnimation();
-        flipAnimation.setValue(0);
+            clearFlipTimers(); // prevent late timeouts from previous flip
+            setFlipped(1); // ensure upright (prevents upside-down artifact)
+            flipAnimation.stopAnimation();
+            flipAnimation.setValue(0);
 
-        const nextSide = coinSide === CoinSide.HEADS ? CoinSide.TAILS : CoinSide.HEADS;
-        setCoinSide(nextSide);
-        setLastResult(nextSide);
-        setResultSource("manual"); // hide prediction verdict in BottomArea
+            const nextSide = coinSide === CoinSide.HEADS ? CoinSide.TAILS : CoinSide.HEADS;
+            setCoinSide(nextSide);
+            setLastResult(nextSide);
+            setResultSource("manual"); // hide prediction verdict in BottomArea
+
+            // TUTORIAL: two single taps required
+            tapCounterRef.current += 1;
+            if (tapCounterRef.current >= 2 && !tutorial.tapTwice) {
+                setTutorial((prev) => ({ ...prev, tapTwice: true }));
+            }
         }
     };
 
@@ -181,6 +240,11 @@
         if (Math.abs(lastScaleRef.current - 1) < 0.01) {
             setPendingPrediction(null);
             setIsDialogVisible(true);
+
+            // TUTORIAL: mark double tap
+            if (!tutorial.doubleTapped) {
+                setTutorial((prev) => ({ ...prev, doubleTapped: true }));
+            }
         }
         }
     };
@@ -193,12 +257,13 @@
 
     // Coin flip logic and animation
     const flipCoin = async () => {
+        setIsFlipping(true);  
         // Animation parameters
         const MAX_ROTATIONS_LOCAL = 30; // maximum amount of rotations the coin can do
         const MIN_ROTATIONS_LOCAL = 15;
         const rotations = Math.max(
-        Math.floor(Math.random() * MAX_ROTATIONS_LOCAL) + 1,
-        MIN_ROTATIONS_LOCAL
+            Math.floor(Math.random() * MAX_ROTATIONS_LOCAL) + 1,
+            MIN_ROTATIONS_LOCAL
         );
         const duration = 1500; // milliseconds
 
@@ -208,29 +273,30 @@
         setLastResult(null);
 
         Animated.timing(flipAnimation, {
-        toValue: rotations,
-        duration,
-        easing: Easing.linear,
-        useNativeDriver: true,
+            toValue: rotations,
+            duration,
+            easing: Easing.linear,
+            useNativeDriver: true,
         }).start(() => {
-        currentFlip = 1;
-        setFlipped(currentFlip);
-        flipAnimation.setValue(0);
-        // Done with all timers for this flip
-        clearFlipTimers();
+            currentFlip = 1;
+            setFlipped(currentFlip);
+            flipAnimation.setValue(0);
+            // Done with all timers for this flip
+            clearFlipTimers();
+            setIsFlipping(false);
 
-        // popup only if coin is added to the wallet
-        let currentCoin = coinSide;
-        const alreadyInWallet = coins.some((c) => c.id === coin.id);
-        if (!alreadyInWallet) {
-            // Show notification that the coin has been added to the wallet
-            addCoin(coin, currentCoin);
-            Toast.show({
-            type: "success",
-            text1: "Münt on lisatud rahakotti",
-            text2: `Münt '${coin.title}' on lisatud teie rahakotti 🪙`,
-            });
-        }
+            // popup only if coin is added to the wallet
+            let currentCoin = coinSide;
+            const alreadyInWallet = coins.some((c) => c.id === coin.id);
+            if (!alreadyInWallet) {
+                // Show notification that the coin has been added to the wallet
+                addCoin(coin, currentCoin);
+                Toast.show({
+                type: "success",
+                text1: "Münt on lisatud rahakotti",
+                text2: `Münt '${coin.title}' on lisatud teie rahakotti 🪙`,
+                });
+            }
         });
 
         let step = duration / (rotations + 1);
@@ -240,18 +306,18 @@
         for (let t = step; duration - t > 0.001; t += step) {
         const id = setTimeout(() => {
             if (currentCoin === CoinSide.HEADS) {
-            setCoinSide(CoinSide.TAILS);
-            currentCoin = CoinSide.TAILS;
+                setCoinSide(CoinSide.TAILS);
+                currentCoin = CoinSide.TAILS;
             } else {
-            setCoinSide(CoinSide.HEADS);
-            currentCoin = CoinSide.HEADS;
+                setCoinSide(CoinSide.HEADS);
+                currentCoin = CoinSide.HEADS;
             }
             currentFlip = currentFlip === 1 ? -1 : 1;
             setFlipped(currentFlip);
 
             if (duration - t - step <= 0.001) {
-            setLastResult(currentCoin);
-            setResultSource("flip");
+                setLastResult(currentCoin);
+                setResultSource("flip");
             }
         }, t) as unknown as number;
         timersRef.current.push(id);
@@ -268,10 +334,37 @@
         requestAnimationFrame(() => flipCoin());
     };
 
+    const forceCoinUpright = () => {
+        // kill any remaining tick timers
+        clearFlipTimers();
+        // stop the animated rotateX and reset pose
+        try {
+            flipAnimation.stopAnimation(() => {
+            flipAnimation.setValue(0); // rotateX -> 0deg
+            setFlipped(1); // scaleY -> 1 (upright)
+            });
+        } catch {}
+        setIsFlipping(false);
+    };
+
     // --- Bottom sheet animations ---
     const openInfoSheet = () => {
+        // If a flip is in progress (or just ended), force a stable, upright coin
+        if (isFlipping) {
+            forceCoinUpright();
+        } else {
+            // Even if not flipping, late timers can still bite
+            forceCoinUpright();
+        }
+
         setIsInfoVisible(true);
-        Animated.parallel([
+
+    // TUTORIAL: mark info opened
+    if (!tutorial.openedInfo) {
+        setTutorial((prev) => ({ ...prev, openedInfo: true }));
+    }
+
+    Animated.parallel([
         Animated.timing(bottomSheetAnim, {
             toValue: 1,
             duration: 300,
@@ -317,7 +410,7 @@
             // Don't claim the gesture at start
             onStartShouldSetPanResponder: () => false,
 
-            // Claim only when: single finger, not zoomed, significant vertical move, and it's an upward swipe (dy < 0)
+            // Claim only when: single finger, coin at start, significant vertical move, and it's an upward swipe
             onMoveShouldSetPanResponder: (_, g) => {
                 const singleTouch = (g.numberActiveTouches ?? 1) === 1;
                 const bigVerticalMove = Math.abs(g.dy) > 20 && Math.abs(g.dy) > Math.abs(g.dx);
@@ -329,7 +422,11 @@
             onPanResponderTerminationRequest: () => true,
 
             onPanResponderRelease: (_, g) => {
-                if (isCoinAtStart() && g.dy < -80) openInfoSheet();
+                if (isCoinAtStart() && g.dy < -80) {
+                    // normalize pose before sheet animation to avoid “drop & flip”
+                    forceCoinUpright();
+                    openInfoSheet();
+                }
             },
         })
     ).current;
@@ -337,17 +434,17 @@
     // --- Drag-down gesture on the sheet ---
     const sheetPanResponder = useRef(
         PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onPanResponderMove: (_, gesture) => {
-            if (gesture.dy > 0) dragY.setValue(gesture.dy);
-        },
-        onPanResponderRelease: (_, gesture) => {
-            if (gesture.dy > 100) {
-            closeInfoSheet();
-            } else {
-            Animated.spring(dragY, { toValue: 0, useNativeDriver: true }).start();
-            }
-        },
+            onStartShouldSetPanResponder: () => true,
+            onPanResponderMove: (_, gesture) => {
+                if (gesture.dy > 0) dragY.setValue(gesture.dy);
+            },
+            onPanResponderRelease: (_, gesture) => {
+                if (gesture.dy > 100) {
+                    closeInfoSheet();
+                } else {
+                    Animated.spring(dragY, { toValue: 0, useNativeDriver: true }).start();
+                }
+            },
         })
     ).current;
 
@@ -357,10 +454,11 @@
         <Text style={{ fontWeight: "500", fontSize: 24, color: "#e7e3e3ff" }}>
             {coin.title.charAt(0).toLocaleUpperCase() + coin.title.slice(1)}
         </Text>
-{/* top spacer keeps coin centered even when result appears */}
+
+        {/* top spacer keeps coin centered even when result appears */}
         <View style={{ flex: 1 }} />
-        
-{/* Double-tap wraps single-tap; taps wait for gesture handlers (pinch/pan/rotate) */}
+
+        {/* Double-tap wraps single-tap; taps wait for gesture handlers (pinch/pan/rotate) */}
         <TapGestureHandler
             ref={doubleTapRef}
             numberOfTaps={2}
@@ -372,7 +470,7 @@
             waitFor={[doubleTapRef, pinchRef, panRef, rotateRef]}
             onHandlerStateChange={onSingleTap}
             >
-         {/* Pinch, rotate and pan recognize simultaneously (rotate/pan only when zoomed) */}
+            {/* Pinch, rotate and pan recognize simultaneously (rotate/pan only when zoomed) */}
             <PinchGestureHandler
                 ref={pinchRef}
                 simultaneousHandlers={[panRef, rotateRef]}
@@ -393,7 +491,10 @@
                     onGestureEvent={onPanGestureEvent}
                     onHandlerStateChange={onPanStateChange}
                 >
-                    <Animated.View>
+                    <Animated.View
+                    pointerEvents="box-none"
+                    style={[styles.coinLayer, isInfoVisible && styles.coinLayerRaised]}
+                    >
                     <Animated.Image
                         source={
                         coinSide === CoinSide.HEADS
@@ -404,29 +505,29 @@
                         styles.coinImage,
                         {
                             transform: [
-                            { translateX: translate.x },
-                            { translateY: translate.y },
-                            { scale: renderScale },
-                            {
-                                rotate: renderRotation.interpolate({
-                                inputRange: [-Math.PI * 2, Math.PI * 2],
-                                outputRange: ["-6.2832rad", "6.2832rad"],
-                                }),
-                            },
-                            { scaleY: flipped },
-                            {
-                                rotateX: flipAnimation.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: ["0deg", "180deg"],
-                                }),
-                            },
-                            // coin shift 
-                            {
-                                translateY: coinShiftAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [0, -230], // coin shifts 230px
-                                }),
-                            },
+                                { translateX: translate.x },
+                                { translateY: translate.y },
+                                { scale: renderScale },
+                                {
+                                    rotate: renderRotation.interpolate({
+                                    inputRange: [-Math.PI * 2, Math.PI * 2],
+                                    outputRange: ["-6.2832rad", "6.2832rad"],
+                                    }),
+                                },
+                                { scaleY: flipped },
+                                {
+                                    rotateX: flipAnimation.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: ["0deg", "180deg"],
+                                    }),
+                                },
+                                // coin shift
+                                {
+                                    translateY: coinShiftAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0, -230], // coin shifts 230px
+                                    }),
+                                },
                             ],
                         },
                         ]}
@@ -439,7 +540,7 @@
             </TapGestureHandler>
         </TapGestureHandler>
 
-{/* bottom area holds the result; hidden while zoomed */}
+        {/* bottom area holds the result; hidden while zoomed */}
         <View style={styles.bottomArea}>
             {lastResult !== null && !isZoomed && (
             <BottomArea
@@ -470,7 +571,6 @@
                     <Text style={styles.choiceLabel}>Avers</Text>
                 </Pressable>
 
-
                 <Pressable
                     style={styles.choiceCard}
                     onPress={() => handleChoosePrediction(CoinSide.TAILS)}
@@ -482,17 +582,11 @@
 
                 <View style={styles.separator} />
 
-                <TouchableOpacity
-                onPress={handleFlipWithoutPrediction}
-                style={styles.skipBtn}
-                >
+                <TouchableOpacity onPress={handleFlipWithoutPrediction} style={styles.skipBtn}>
                 <Text style={styles.skipBtnText}>Viska ilma ennustuseta</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                onPress={() => setIsDialogVisible(false)}
-                style={styles.closeBtn}
-                >
+                <TouchableOpacity onPress={() => setIsDialogVisible(false)} style={styles.closeBtn}>
                 <Text style={styles.closeBtnText}>Sulge</Text>
                 </TouchableOpacity>
             </View>
@@ -523,10 +617,7 @@
             {/* Handle and Close Button */}
             <View style={styles.sheetHeader}>
                 <View style={styles.sheetHandle} />
-                <TouchableOpacity
-                onPress={closeInfoSheet}
-                style={styles.sheetCloseBtn}
-                >
+                <TouchableOpacity onPress={closeInfoSheet} style={styles.sheetCloseBtn}>
                 <Text style={styles.sheetCloseIcon}>✕</Text>
                 </TouchableOpacity>
             </View>
@@ -563,6 +654,13 @@
             </View>
             </Animated.View>
         )}
+
+        {/* TUTORIAL OVERLAY */}
+        <FirstRunTutorial
+            progress={tutorial}
+            onSkipStep={handleSkipStep}
+            onSkipAll={handleSkipAll}
+        />
         </View>
     );
-    }
+}
