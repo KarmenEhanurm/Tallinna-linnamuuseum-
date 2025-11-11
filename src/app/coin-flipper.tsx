@@ -67,7 +67,7 @@ export default function Flipper() {
     // ROTATION (two-finger)
     const renderRotation = useRef(new Animated.Value(0)).current;
     const lastRotationRef = useRef(0);
-    
+
     // Gesture handler refs to control priority/simultaneity
     const pinchRef = useRef<any>(null);
     const panRef = useRef<any>(null);
@@ -101,20 +101,20 @@ export default function Flipper() {
     };
     const handleSkipAll = () => {
         setTutorial({
-        tapTwice: true,
-        zoomedIn: true,
-        rotated: true,
-        zoomedOut: true,
-        doubleTapped: true,
-        openedInfo: true,
-        swipeWallet: true,
-        dragCoin: true,
-        walletInfo: false,
+            tapTwice: true,
+            zoomedIn: true,
+            rotated: true,
+            zoomedOut: true,
+            doubleTapped: true,
+            openedInfo: true,
+            swipeWallet: true,
+            dragCoin: true,
+            walletInfo: false,
         });
     };
     useEffect(() => {
         // touch AsyncStorage once (defensive; FirstRunTutorial persists itself)
-        AsyncStorage.getItem("tutorial.done").then(() => {});
+        AsyncStorage.getItem("tutorial.done").then(() => { });
     }, []);
 
     // Pinch handlers
@@ -136,25 +136,25 @@ export default function Flipper() {
             nativeEvent.state === State.CANCELLED ||
             nativeEvent.state === State.FAILED
         ) {
-        // finalize the scale
-        renderScale.stopAnimation((val: number) => {
-            const clamped = Math.max(MIN_SCALE, Math.min(val ?? lastScaleRef.current, MAX_SCALE));
-            renderScale.setValue(clamped);
-            lastScaleRef.current = clamped;
+            // finalize the scale
+            renderScale.stopAnimation((val: number) => {
+                const clamped = Math.max(MIN_SCALE, Math.min(val ?? lastScaleRef.current, MAX_SCALE));
+                renderScale.setValue(clamped);
+                lastScaleRef.current = clamped;
 
-            if (clamped === 1) {
-                translate.setValue({ x: 0, y: 0 });
-                panOffset.current = { x: 0, y: 0 };
-                renderRotation.setValue(0);
-                lastRotationRef.current = 0;
-                setIsZoomed(false);
+                if (clamped === 1) {
+                    translate.setValue({ x: 0, y: 0 });
+                    panOffset.current = { x: 0, y: 0 };
+                    renderRotation.setValue(0);
+                    lastRotationRef.current = 0;
+                    setIsZoomed(false);
 
-                // TUTORIAL: mark zoomed out after having zoomed in
-                if (!tutorial.zoomedOut && tutorial.zoomedIn) {
-                    setTutorial((prev) => ({ ...prev, zoomedOut: true }));
+                    // TUTORIAL: mark zoomed out after having zoomed in
+                    if (!tutorial.zoomedOut && tutorial.zoomedIn) {
+                        setTutorial((prev) => ({ ...prev, zoomedOut: true }));
+                    }
                 }
-            }
-        });
+            });
         }
     };
 
@@ -167,19 +167,19 @@ export default function Flipper() {
     };
     const onPanStateChange = ({ nativeEvent }: any) => {
         if (
-        nativeEvent.state === State.END ||
-        nativeEvent.state === State.CANCELLED ||
-        nativeEvent.state === State.FAILED
+            nativeEvent.state === State.END ||
+            nativeEvent.state === State.CANCELLED ||
+            nativeEvent.state === State.FAILED
         ) {
-        if (lastScaleRef.current <= 1.001) {
-            translate.setValue({ x: 0, y: 0 });
-            panOffset.current = { x: 0, y: 0 };
-        } else {
-            panOffset.current = {
-            x: panOffset.current.x + nativeEvent.translationX,
-            y: panOffset.current.y + nativeEvent.translationY,
-            };
-        }
+            if (lastScaleRef.current <= 1.001) {
+                translate.setValue({ x: 0, y: 0 });
+                panOffset.current = { x: 0, y: 0 };
+            } else {
+                panOffset.current = {
+                    x: panOffset.current.x + nativeEvent.translationX,
+                    y: panOffset.current.y + nativeEvent.translationY,
+                };
+            }
         }
     };
 
@@ -197,18 +197,18 @@ export default function Flipper() {
             nativeEvent.state === State.FAILED
         ) {
             // accumulate rotation
-        renderRotation.stopAnimation((val: number) => {
-            lastRotationRef.current = val ?? lastRotationRef.current;
-            // snap tiny angles to 0 for neatness when nearly straight
-            if (Math.abs(lastRotationRef.current) < 0.01) {
-                lastRotationRef.current = 0;
-                renderRotation.setValue(0);
-            }
-            // TUTORIAL: mark rotated after a non-trivial angle
-            if (Math.abs(lastRotationRef.current) >= 0.01 && !tutorial.rotated) {
-                setTutorial((prev) => ({ ...prev, rotated: true }));
-            }
-        });
+            renderRotation.stopAnimation((val: number) => {
+                lastRotationRef.current = val ?? lastRotationRef.current;
+                // snap tiny angles to 0 for neatness when nearly straight
+                if (Math.abs(lastRotationRef.current) < 0.01) {
+                    lastRotationRef.current = 0;
+                    renderRotation.setValue(0);
+                }
+                // TUTORIAL: mark rotated after a non-trivial angle
+                if (Math.abs(lastRotationRef.current) >= 0.01 && !tutorial.rotated) {
+                    setTutorial((prev) => ({ ...prev, rotated: true }));
+                }
+            });
         }
     };
 
@@ -237,15 +237,15 @@ export default function Flipper() {
     // Double tap: open prediction dialog only if zoom is at original size
     const onDoubleTap = ({ nativeEvent }: any) => {
         if (nativeEvent.state === State.ACTIVE) {
-        if (Math.abs(lastScaleRef.current - 1) < 0.01) {
-            setPendingPrediction(null);
-            setIsDialogVisible(true);
+            if (Math.abs(lastScaleRef.current - 1) < 0.01) {
+                setPendingPrediction(null);
+                setIsDialogVisible(true);
 
-            // TUTORIAL: mark double tap
-            if (!tutorial.doubleTapped) {
-                setTutorial((prev) => ({ ...prev, doubleTapped: true }));
+                // TUTORIAL: mark double tap
+                if (!tutorial.doubleTapped) {
+                    setTutorial((prev) => ({ ...prev, doubleTapped: true }));
+                }
             }
-        }
         }
     };
 
@@ -257,7 +257,7 @@ export default function Flipper() {
 
     // Coin flip logic and animation
     const flipCoin = async () => {
-        setIsFlipping(true);  
+        setIsFlipping(true);
         // Animation parameters
         const MAX_ROTATIONS_LOCAL = 30; // maximum amount of rotations the coin can do
         const MIN_ROTATIONS_LOCAL = 15;
@@ -292,9 +292,9 @@ export default function Flipper() {
                 // Show notification that the coin has been added to the wallet
                 addCoin(coin, currentCoin);
                 Toast.show({
-                type: "success",
-                text1: "Münt on lisatud rahakotti",
-                text2: `Münt '${coin.title}' on lisatud teie rahakotti 🪙`,
+                    type: "success",
+                    text1: "Münt on lisatud rahakotti",
+                    text2: `Münt '${coin.title}' on lisatud teie rahakotti 🪙`,
                 });
             }
         });
@@ -304,23 +304,23 @@ export default function Flipper() {
         let currentFlip = flipped;
 
         for (let t = step; duration - t > 0.001; t += step) {
-        const id = setTimeout(() => {
-            if (currentCoin === CoinSide.HEADS) {
-                setCoinSide(CoinSide.TAILS);
-                currentCoin = CoinSide.TAILS;
-            } else {
-                setCoinSide(CoinSide.HEADS);
-                currentCoin = CoinSide.HEADS;
-            }
-            currentFlip = currentFlip === 1 ? -1 : 1;
-            setFlipped(currentFlip);
+            const id = setTimeout(() => {
+                if (currentCoin === CoinSide.HEADS) {
+                    setCoinSide(CoinSide.TAILS);
+                    currentCoin = CoinSide.TAILS;
+                } else {
+                    setCoinSide(CoinSide.HEADS);
+                    currentCoin = CoinSide.HEADS;
+                }
+                currentFlip = currentFlip === 1 ? -1 : 1;
+                setFlipped(currentFlip);
 
-            if (duration - t - step <= 0.001) {
-                setLastResult(currentCoin);
-                setResultSource("flip");
-            }
-        }, t) as unknown as number;
-        timersRef.current.push(id);
+                if (duration - t - step <= 0.001) {
+                    setLastResult(currentCoin);
+                    setResultSource("flip");
+                }
+            }, t) as unknown as number;
+            timersRef.current.push(id);
         }
     };
 
@@ -340,10 +340,10 @@ export default function Flipper() {
         // stop the animated rotateX and reset pose
         try {
             flipAnimation.stopAnimation(() => {
-            flipAnimation.setValue(0); // rotateX -> 0deg
-            setFlipped(1); // scaleY -> 1 (upright)
+                flipAnimation.setValue(0); // rotateX -> 0deg
+                setFlipped(1); // scaleY -> 1 (upright)
             });
-        } catch {}
+        } catch { }
         setIsFlipping(false);
     };
 
@@ -359,41 +359,41 @@ export default function Flipper() {
 
         setIsInfoVisible(true);
 
-    // TUTORIAL: mark info opened
-    if (!tutorial.openedInfo) {
-        setTutorial((prev) => ({ ...prev, openedInfo: true }));
-    }
+        // TUTORIAL: mark info opened
+        if (!tutorial.openedInfo) {
+            setTutorial((prev) => ({ ...prev, openedInfo: true }));
+        }
 
-    Animated.parallel([
-        Animated.timing(bottomSheetAnim, {
-            toValue: 1,
-            duration: 300,
-            easing: Easing.out(Easing.quad),
-            useNativeDriver: true,
-        }),
-        Animated.timing(coinShiftAnim, {
-            toValue: 1, // move coin up
-            duration: 300,
-            easing: Easing.out(Easing.quad),
-            useNativeDriver: true,
-        }),
+        Animated.parallel([
+            Animated.timing(bottomSheetAnim, {
+                toValue: 1,
+                duration: 300,
+                easing: Easing.out(Easing.quad),
+                useNativeDriver: true,
+            }),
+            Animated.timing(coinShiftAnim, {
+                toValue: 1, // move coin up
+                duration: 300,
+                easing: Easing.out(Easing.quad),
+                useNativeDriver: true,
+            }),
         ]).start();
     };
 
     const closeInfoSheet = () => {
         Animated.parallel([
-        Animated.timing(bottomSheetAnim, {
-            toValue: 0,
-            duration: 300,
-            easing: Easing.in(Easing.quad),
-            useNativeDriver: true,
-        }),
-        Animated.timing(coinShiftAnim, {
-            toValue: 0, // move coin back down
-            duration: 300,
-            easing: Easing.in(Easing.quad),
-            useNativeDriver: true,
-        }),
+            Animated.timing(bottomSheetAnim, {
+                toValue: 0,
+                duration: 300,
+                easing: Easing.in(Easing.quad),
+                useNativeDriver: true,
+            }),
+            Animated.timing(coinShiftAnim, {
+                toValue: 0, // move coin back down
+                duration: 300,
+                easing: Easing.in(Easing.quad),
+                useNativeDriver: true,
+            }),
         ]).start(() => setIsInfoVisible(false));
     };
 
@@ -451,216 +451,216 @@ export default function Flipper() {
     // --- Render ---
     return (
         <View style={styles.container} {...swipeResponder.panHandlers}>
-        <Text style={{ fontWeight: "500", fontSize: 24, color: "#e7e3e3ff" }}>
-            {coin.title.charAt(0).toLocaleUpperCase() + coin.title.slice(1)}
-        </Text>
+            <Text style={{ fontWeight: "500", fontSize: 24, color: "#e7e3e3ff" }}>
+                {coin.title.charAt(0).toLocaleUpperCase() + coin.title.slice(1)}
+            </Text>
 
-        {/* top spacer keeps coin centered even when result appears */}
-        <View style={{ flex: 1 }} />
+            {/* top spacer keeps coin centered even when result appears */}
+            <View style={{ flex: 1 }} />
 
-        {/* Double-tap wraps single-tap; taps wait for gesture handlers (pinch/pan/rotate) */}
-        <TapGestureHandler
-            ref={doubleTapRef}
-            numberOfTaps={2}
-            waitFor={[pinchRef, panRef, rotateRef]}
-            onHandlerStateChange={onDoubleTap}
-        >
+            {/* Double-tap wraps single-tap; taps wait for gesture handlers (pinch/pan/rotate) */}
             <TapGestureHandler
-            ref={singleTapRef}
-            waitFor={[doubleTapRef, pinchRef, panRef, rotateRef]}
-            onHandlerStateChange={onSingleTap}
+                ref={doubleTapRef}
+                numberOfTaps={2}
+                waitFor={[pinchRef, panRef, rotateRef]}
+                onHandlerStateChange={onDoubleTap}
             >
-            {/* Pinch, rotate and pan recognize simultaneously (rotate/pan only when zoomed) */}
-            <PinchGestureHandler
-                ref={pinchRef}
-                simultaneousHandlers={[panRef, rotateRef]}
-                onGestureEvent={onPinchEvent}
-                onHandlerStateChange={onPinchStateChange}
-            >
-                <RotationGestureHandler
-                ref={rotateRef}
-                enabled={isZoomed}
-                simultaneousHandlers={[pinchRef, panRef]}
-                onGestureEvent={onRotateEvent}
-                onHandlerStateChange={onRotateStateChange}
+                <TapGestureHandler
+                    ref={singleTapRef}
+                    waitFor={[doubleTapRef, pinchRef, panRef, rotateRef]}
+                    onHandlerStateChange={onSingleTap}
                 >
-                <PanGestureHandler
-                    ref={panRef}
-                    enabled={isZoomed}
-                    simultaneousHandlers={[pinchRef, rotateRef]}
-                    onGestureEvent={onPanGestureEvent}
-                    onHandlerStateChange={onPanStateChange}
-                >
-                    <Animated.View
-                    pointerEvents="box-none"
-                    style={[styles.coinLayer, isInfoVisible && styles.coinLayerRaised]}
+                    {/* Pinch, rotate and pan recognize simultaneously (rotate/pan only when zoomed) */}
+                    <PinchGestureHandler
+                        ref={pinchRef}
+                        simultaneousHandlers={[panRef, rotateRef]}
+                        onGestureEvent={onPinchEvent}
+                        onHandlerStateChange={onPinchStateChange}
                     >
-                    <Animated.Image
-                        source={
-                        coinSide === CoinSide.HEADS
-                            ? coin.headImageResource
-                            : coin.tailsImageResource
-                        }
-                        style={[
-                        styles.coinImage,
+                        <RotationGestureHandler
+                            ref={rotateRef}
+                            enabled={isZoomed}
+                            simultaneousHandlers={[pinchRef, panRef]}
+                            onGestureEvent={onRotateEvent}
+                            onHandlerStateChange={onRotateStateChange}
+                        >
+                            <PanGestureHandler
+                                ref={panRef}
+                                enabled={isZoomed}
+                                simultaneousHandlers={[pinchRef, rotateRef]}
+                                onGestureEvent={onPanGestureEvent}
+                                onHandlerStateChange={onPanStateChange}
+                            >
+                                <Animated.View
+                                    pointerEvents="box-none"
+                                    style={[styles.coinLayer, isInfoVisible && styles.coinLayerRaised]}
+                                >
+                                    <Animated.Image
+                                        source={
+                                            coinSide === CoinSide.HEADS
+                                                ? coin.headImageResource
+                                                : coin.tailsImageResource
+                                        }
+                                        style={[
+                                            styles.coinImage,
+                                            {
+                                                transform: [
+                                                    { translateX: translate.x },
+                                                    { translateY: translate.y },
+                                                    { scale: renderScale },
+                                                    {
+                                                        rotate: renderRotation.interpolate({
+                                                            inputRange: [-Math.PI * 2, Math.PI * 2],
+                                                            outputRange: ["-6.2832rad", "6.2832rad"],
+                                                        }),
+                                                    },
+                                                    { scaleY: flipped },
+                                                    {
+                                                        rotateX: flipAnimation.interpolate({
+                                                            inputRange: [0, 1],
+                                                            outputRange: ["0deg", "180deg"],
+                                                        }),
+                                                    },
+                                                    // coin shift
+                                                    {
+                                                        translateY: coinShiftAnim.interpolate({
+                                                            inputRange: [0, 1],
+                                                            outputRange: [0, -230], // coin shifts 230px
+                                                        }),
+                                                    },
+                                                ],
+                                            },
+                                        ]}
+                                        resizeMode="contain"
+                                    />
+                                </Animated.View>
+                            </PanGestureHandler>
+                        </RotationGestureHandler>
+                    </PinchGestureHandler>
+                </TapGestureHandler>
+            </TapGestureHandler>
+
+            {/* bottom area holds the result; hidden while zoomed */}
+            <View style={styles.bottomArea}>
+                {lastResult !== null && !isZoomed && (
+                    <BottomArea
+                        side={lastResult}
+                        predicted={resultSource === "flip" ? pendingPrediction : null}
+                    />
+                )}
+            </View>
+
+            {/* Prediction dialog */}
+            <Modal
+                visible={isDialogVisible}
+                animationType="fade"
+                transparent
+                onRequestClose={() => setIsDialogVisible(false)}
+            >
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>Vali oma ennustus</Text>
+
+                        <View style={styles.choicesRow}>
+                            {/* Heads choice */}
+                            <Pressable
+                                style={styles.choiceCard}
+                                onPress={() => handleChoosePrediction(CoinSide.HEADS)}
+                                accessibilityRole="button"
+                            >
+                                <Text style={styles.choiceLabel}>Avers</Text>
+                            </Pressable>
+
+                            <Pressable
+                                style={styles.choiceCard}
+                                onPress={() => handleChoosePrediction(CoinSide.TAILS)}
+                                accessibilityRole="button"
+                            >
+                                <Text style={styles.choiceLabel}>Revers</Text>
+                            </Pressable>
+                        </View>
+
+                        <View style={styles.separator} />
+
+                        <TouchableOpacity onPress={handleFlipWithoutPrediction} style={styles.skipBtn}>
+                            <Text style={styles.skipBtnText}>Viska ilma ennustuseta</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setIsDialogVisible(false)} style={styles.closeBtn}>
+                            <Text style={styles.closeBtnText}>Sulge</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Bottom sheet (animated) */}
+            {isInfoVisible && (
+                <Animated.View
+                    {...sheetPanResponder.panHandlers}
+                    style={[
+                        styles.bottomSheet,
                         {
                             transform: [
-                                { translateX: translate.x },
-                                { translateY: translate.y },
-                                { scale: renderScale },
                                 {
-                                    rotate: renderRotation.interpolate({
-                                    inputRange: [-Math.PI * 2, Math.PI * 2],
-                                    outputRange: ["-6.2832rad", "6.2832rad"],
-                                    }),
-                                },
-                                { scaleY: flipped },
-                                {
-                                    rotateX: flipAnimation.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: ["0deg", "180deg"],
-                                    }),
-                                },
-                                // coin shift
-                                {
-                                    translateY: coinShiftAnim.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0, -230], // coin shifts 230px
-                                    }),
+                                    translateY: Animated.add(
+                                        bottomSheetAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [400, 0],
+                                        }),
+                                        dragY
+                                    ),
                                 },
                             ],
                         },
-                        ]}
-                        resizeMode="contain"
-                    />
-                    </Animated.View>
-                </PanGestureHandler>
-                </RotationGestureHandler>
-            </PinchGestureHandler>
-            </TapGestureHandler>
-        </TapGestureHandler>
+                    ]}
+                >
+                    {/* Handle and Close Button */}
+                    <View style={styles.sheetHeader}>
+                        <View style={styles.sheetHandle} />
+                        <TouchableOpacity onPress={closeInfoSheet} style={styles.sheetCloseBtn}>
+                            <Text style={styles.sheetCloseIcon}>✕</Text>
+                        </TouchableOpacity>
+                    </View>
 
-        {/* bottom area holds the result; hidden while zoomed */}
-        <View style={styles.bottomArea}>
-            {lastResult !== null && !isZoomed && (
-            <BottomArea
-                side={lastResult}
-                predicted={resultSource === "flip" ? pendingPrediction : null}
-            />
+                    {/* Scrollable info content */}
+                    <View style={{ width: "100%", paddingHorizontal: 20 }}>
+                        <View style={styles.infoCard}>
+                            <Text style={styles.infoTitle}>Aasta</Text>
+                            <Text style={styles.infoValue}>{coin.date ?? "—"}</Text>
+                        </View>
+
+                        <View style={styles.infoCard}>
+                            <Text style={styles.infoTitle}>Mõõdud</Text>
+                            <Text style={styles.infoValue}>
+                                Läbimõõt: {coin.diameter ?? "—"} mm{"\n"}Kaal: {coin.weight ?? "—"} g
+                            </Text>
+                        </View>
+
+                        <View style={styles.infoCard}>
+                            <Text style={styles.infoTitle}>Materjal</Text>
+                            <Text style={styles.infoValue}>{coin.material ?? "—"}</Text>
+                        </View>
+
+                        <View style={styles.infoCard}>
+                            <Text style={styles.infoTitle}>Kirjeldus</Text>
+                            <Text style={styles.infoValue}>
+                                <Text style={{ fontWeight: "bold" }}>Kull pool: </Text>
+                                {coin.headDescription ?? "—"}
+                                {"\n"}
+                                <Text style={{ fontWeight: "bold" }}>Kiri pool: </Text>
+                                {coin.tailsDescription ?? "—"}
+                            </Text>
+                        </View>
+                    </View>
+                </Animated.View>
             )}
-        </View>
 
-        {/* Prediction dialog */}
-        <Modal
-            visible={isDialogVisible}
-            animationType="fade"
-            transparent
-            onRequestClose={() => setIsDialogVisible(false)}
-        >
-            <View style={styles.modalBackdrop}>
-            <View style={styles.modalCard}>
-                <Text style={styles.modalTitle}>Vali oma ennustus</Text>
-
-                <View style={styles.choicesRow}>
-                {/* Heads choice */}
-                <Pressable
-                    style={styles.choiceCard}
-                    onPress={() => handleChoosePrediction(CoinSide.HEADS)}
-                    accessibilityRole="button"
-                >
-                    <Text style={styles.choiceLabel}>Avers</Text>
-                </Pressable>
-
-                <Pressable
-                    style={styles.choiceCard}
-                    onPress={() => handleChoosePrediction(CoinSide.TAILS)}
-                    accessibilityRole="button"
-                >
-                    <Text style={styles.choiceLabel}>Revers</Text>
-                </Pressable>
-                </View>
-
-                <View style={styles.separator} />
-
-                <TouchableOpacity onPress={handleFlipWithoutPrediction} style={styles.skipBtn}>
-                <Text style={styles.skipBtnText}>Viska ilma ennustuseta</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setIsDialogVisible(false)} style={styles.closeBtn}>
-                <Text style={styles.closeBtnText}>Sulge</Text>
-                </TouchableOpacity>
-            </View>
-            </View>
-        </Modal>
-
-        {/* Bottom sheet (animated) */}
-        {isInfoVisible && (
-            <Animated.View
-            {...sheetPanResponder.panHandlers}
-            style={[
-                styles.bottomSheet,
-                {
-                transform: [
-                    {
-                    translateY: Animated.add(
-                        bottomSheetAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [400, 0],
-                        }),
-                        dragY
-                    ),
-                    },
-                ],
-                },
-            ]}
-            >
-            {/* Handle and Close Button */}
-            <View style={styles.sheetHeader}>
-                <View style={styles.sheetHandle} />
-                <TouchableOpacity onPress={closeInfoSheet} style={styles.sheetCloseBtn}>
-                <Text style={styles.sheetCloseIcon}>✕</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* Scrollable info content */}
-            <View style={{ width: "100%", paddingHorizontal: 20 }}>
-                <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>Aasta</Text>
-                <Text style={styles.infoValue}>{coin.date ?? "—"}</Text>
-                </View>
-
-                <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>Mõõdud</Text>
-                <Text style={styles.infoValue}>
-                    Läbimõõt: {coin.diameter ?? "—"} mm{"\n"}Kaal: {coin.weight ?? "—"} g
-                </Text>
-                </View>
-
-                <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>Materjal</Text>
-                <Text style={styles.infoValue}>{coin.material ?? "—"}</Text>
-                </View>
-
-                <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>Kirjeldus</Text>
-                <Text style={styles.infoValue}>
-                    <Text style={{ fontWeight: "bold" }}>Kull pool: </Text>
-                    {coin.headDescription ?? "—"}
-                    {"\n"}
-                    <Text style={{ fontWeight: "bold" }}>Kiri pool: </Text>
-                    {coin.tailsDescription ?? "—"}
-                </Text>
-                </View>
-            </View>
-            </Animated.View>
-        )}
-
-        {/* TUTORIAL OVERLAY */}
-        <FirstRunTutorial
-            progress={tutorial}
-            onSkipStep={handleSkipStep}
-            onSkipAll={handleSkipAll}
-        />
+            {/* TUTORIAL OVERLAY */}
+            <FirstRunTutorial
+                progress={tutorial}
+                onSkipStep={handleSkipStep}
+                onSkipAll={handleSkipAll}
+            />
         </View>
     );
 }
