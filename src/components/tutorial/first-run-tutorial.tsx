@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { styles } from "../common/stylesheet";
 
 export type TutorialProgress = {
     tapTwice: boolean;
@@ -9,24 +10,25 @@ export type TutorialProgress = {
     zoomedOut: boolean;
     doubleTapped: boolean;
     openedInfo: boolean;
+    swipeWallet: boolean;
+    dragCoin: boolean;
+    walletInfo: boolean;
 };
 
-export type TutorialStepKey = "tapTwice" | "zoomedIn" | "rotated" | "zoomedOut" | "doubleTapped" | "openedInfo";
+export type TutorialStepKey = "tapTwice" | "zoomedIn" | "rotated" | "zoomedOut" | "doubleTapped" | "openedInfo" | "swipeWallet" | "dragCoin" | "walletInfo";
 
 type Props = {
     progress: TutorialProgress;
     onSkipStep: (step: TutorialStepKey) => void;
     onSkipAll: () => void;
-    // Optional: override default blue
-    primaryColor?: string;
     // Optional: force show (for testing)
     visibleOverride?: boolean;
 };
 
 const STORAGE_DONE_KEY = "tutorial.done";
-const STORAGE_SKIPS_KEY = "tutorial.skips"; // remembers which steps were skipped
+const STORAGE_SKIPS_KEY = "tutorial.skips";
 
-const ORDER: TutorialStepKey[] = ["tapTwice", "zoomedIn", "rotated", "zoomedOut", "doubleTapped", "openedInfo"];
+const ORDER: TutorialStepKey[] = ["tapTwice", "zoomedIn", "rotated", "zoomedOut", "doubleTapped", "openedInfo", "swipeWallet", "dragCoin", "walletInfo"];
 
 const TEXTS: Record<TutorialStepKey, string> = {
     tapTwice:
@@ -36,18 +38,23 @@ const TEXTS: Record<TutorialStepKey, string> = {
     rotated:
         "Pööra münti kahe sõrmega, et vaadata münti eri nurkade alt.",
     zoomedOut:
-        "Tee münt väiksemaks, et jätkata .",
+        "Muuda münt tagasi algsuurusesse, et jätkata.",
     doubleTapped:
         "Tee mündil topeltklikk, et valida ennustus ja visata münti.",
     openedInfo:
         "Libista ekraanil alt äärest üles, et näha mündi infot.",
+    swipeWallet:
+        "Libista ekraanil paremalt vasakule, et avada rahakott.",
+    dragCoin:
+        "Lohista münti mööda ekraani.",
+    walletInfo:
+        "Rahakotis mündile vajutades liigud tagasi mündi info juurde.\nKui tahad uut münti visata, libista ekraanil vasakult paremale.",
 };
 
 export function FirstRunTutorial({
     progress,
     onSkipStep,
     onSkipAll,
-    primaryColor = "#B4CECC",
     visibleOverride,
 }: Props) {
     const [done, setDone] = useState<boolean>(false);
@@ -58,26 +65,32 @@ export function FirstRunTutorial({
         zoomedOut: false,
         doubleTapped: false,
         openedInfo: false,
+        swipeWallet: false,
+        dragCoin: false,
+        walletInfo: false,
     });
-    
+
     // Load persisted flags once
     useEffect(() => {
         (async () => {
-            try {
-                const rawDone = await AsyncStorage.getItem(STORAGE_DONE_KEY);
-                const rawSkips = await AsyncStorage.getItem(STORAGE_SKIPS_KEY);
-                if (rawDone === "1") setDone(true);
-                if (rawSkips) {
-                    const parsed = JSON.parse(rawSkips);
-                    setSkips((prev) => ({ ...prev, ...parsed }));
-                }
-            } catch {}
+        try {
+            const rawDone = await AsyncStorage.getItem(STORAGE_DONE_KEY);
+            const rawSkips = await AsyncStorage.getItem(STORAGE_SKIPS_KEY);
+            if (rawDone === "1") setDone(true);
+            if (rawSkips) {
+                const parsed = JSON.parse(rawSkips);
+                setSkips((prev) => ({ ...prev, ...parsed }));
+            }
+        } catch {
+            // ignore
+        }
         })();
     }, []);
 
-    const allComplete = useMemo(() => {
-        return ORDER.every((k) => progress[k] || skips[k]);
-    }, [progress, skips]);
+    const allComplete = useMemo(
+        () => ORDER.every((k) => progress[k] || skips[k]),
+        [progress, skips]
+    );
 
     // Persist completion
     useEffect(() => {
@@ -87,7 +100,7 @@ export function FirstRunTutorial({
         }
     }, [allComplete, done]);
 
-    // Figure out which step to show
+    // Which step to show
     const nextStep: TutorialStepKey | null = useMemo(() => {
         if (done) return null;
         for (const k of ORDER) {
@@ -97,7 +110,6 @@ export function FirstRunTutorial({
     }, [progress, skips, done]);
 
     const visible = visibleOverride ?? (!!nextStep && !done);
-
     if (!visible || !nextStep) return null;
 
     const handleSkipStep = async () => {
@@ -117,90 +129,40 @@ export function FirstRunTutorial({
         onSkipAll();
     };
 
+    // Non-blocking overlay (NO Modal): allows gestures through, card is interactive.
     return (
-        <Modal visible transparent animationType="fade" onRequestClose={handleSkipAll}>
-            <View style={s.backdrop}>
-                <View style={[s.card, { borderColor: `${primaryColor}33` }]}>
-                    <Text style={[s.title, { color: primaryColor }]}>Kuidas alustada</Text>
-                    <Text style={s.text}>{TEXTS[nextStep]}</Text>
+        <View style={styles.tutorialOverlay} pointerEvents="box-none">
 
-                    <View style={s.actions}>
-                        <TouchableOpacity onPress={handleSkipStep} style={[s.btnGhost]}>
-                            <Text style={[s.btnGhostText, { color: primaryColor }]}>Jäta see samm vahele</Text>
-                        </TouchableOpacity>
+        {/* The card itself at the top, centered horizontally */}
+        <View
+            style={[
+            styles.tutorialCard,
+            ]}
+            pointerEvents="auto"
+        >
+            <Text style={styles.tutorialTitle}>Kuidas alustada</Text>
+            <Text style={styles.tutorialText}>{TEXTS[nextStep]}</Text>
 
-                        <TouchableOpacity onPress={handleSkipAll} style={[s.btn, { backgroundColor: primaryColor }]}>
-                            <Text style={s.btnText}>Jäta õpetus vahele</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <Text style={s.hint}>Jätkamiseks tehke toiming vastavalt juhisele.</Text>
-                </View>
+            {/* Bottom-right: skip current step */}
+            <View style={styles.tutorialActions}>
+            <TouchableOpacity
+                onPress={handleSkipStep}
+                style={styles.tutorialSkipStepBtn}
+                accessibilityLabel="Jäta see samm vahele"
+            >
+                <Text style={styles.tutorialSkipStepText}>Jäta samm vahele</Text>
+            </TouchableOpacity>
             </View>
-        </Modal>
+
+            {/* Top-right global close (Jäta õpetus vahele = X) */}
+            <TouchableOpacity
+                onPress={handleSkipAll}
+                style={styles.tutorialClose}
+                accessibilityLabel="Jäta õpetus vahele"
+            >
+                <Text style={styles.tutorialCloseText}>×</Text>
+            </TouchableOpacity>
+        </View>
+    </View>
     );
 }
-
-const s = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-  },
-  card: {
-    width: "100%",
-    maxWidth: 560,
-    backgroundColor: "#f4f8ff",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  text: {
-    fontSize: 15,
-    color: "#1f2937",
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  actions: {
-    marginTop: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  btn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 999,
-    alignItems: "center",
-  },
-  btnText: {
-    color: "white",
-    fontWeight: "700",
-  },
-  btnGhost: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 999,
-    alignItems: "center",
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  btnGhostText: {
-    fontWeight: "700",
-  },
-  hint: {
-    marginTop: 10,
-    textAlign: "center",
-    color: "#6b7280",
-    fontSize: 12,
-  },
-});

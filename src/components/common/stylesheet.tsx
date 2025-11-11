@@ -211,4 +211,77 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+
+    // Tutorial overlay (first run)
+    tutorialOverlay: {
+        position: "absolute",
+        top: 0, left: 0, right: 0,
+        // don't cover bottom so user can swipe from bottom edge comfortably
+        // height omitted to keep non-blocking; overlay itself doesn't eat touches
+        alignItems: "center",
+        justifyContent: "flex-start",
+        paddingTop: 12,
+        paddingHorizontal: 12,
+    },
+    tutorialCard: {
+        width: "100%",
+        maxWidth: 560,
+        backgroundColor: "#B4CECC",
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: "#ffffff0f",
+        // subtle elevation
+        shadowColor: "#000",
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 3,
+    },
+    tutorialTitle: {
+        color: "#2b2b2bff",
+        fontSize: 16,
+        fontWeight: "800",
+        textAlign: "center",
+        marginBottom: 6,
+    },
+    tutorialText: {
+        fontSize: 14,
+        color: "#2b2b2bff",
+        textAlign: "center",
+        lineHeight: 20,
+    },
+    tutorialActions: {
+        marginTop: 10,
+        width: "100%",
+        alignItems: "flex-end",
+    },
+    tutorialSkipStepBtn: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 999,
+        backgroundColor: "transparent",
+    },
+    tutorialSkipStepText: {
+        color: "#91603A",
+        fontWeight: "700",
+    },
+    tutorialClose: {
+        position: "absolute",
+        right: 8,
+        top: 8,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: "#B4CECC",
+        alignItems: "center",
+        justifyContent: "center",
+
+    },
+    tutorialCloseText: {
+        color: "#2b2b2bff",
+        fontSize: 20,
+        fontWeight: "800",
+        lineHeight: 20,
+    },
 });

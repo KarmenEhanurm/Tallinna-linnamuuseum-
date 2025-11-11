@@ -82,7 +82,7 @@ export default function Flipper() {
         timersRef.current = [];
     };
 
-  // TUTORIAL: progress & helpers
+    // TUTORIAL: progress & helpers
     const [tutorial, setTutorial] = useState<TutorialProgress>({
         tapTwice: false,
         zoomedIn: false,
@@ -90,6 +90,9 @@ export default function Flipper() {
         zoomedOut: false,
         doubleTapped: false,
         openedInfo: false,
+        swipeWallet: false,
+        dragCoin: false,
+        walletInfo: false,
     });
     const tapCounterRef = useRef(0);
 
@@ -104,6 +107,9 @@ export default function Flipper() {
         zoomedOut: true,
         doubleTapped: true,
         openedInfo: true,
+        swipeWallet: true,
+        dragCoin: true,
+        walletInfo: false,
         });
     };
     useEffect(() => {
@@ -619,7 +625,6 @@ export default function Flipper() {
             progress={tutorial}
             onSkipStep={handleSkipStep}
             onSkipAll={handleSkipAll}
-            primaryColor="#2f6feb"
         />
         </View>
     );
