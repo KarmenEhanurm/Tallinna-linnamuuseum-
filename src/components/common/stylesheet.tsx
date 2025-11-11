@@ -14,6 +14,16 @@ export const styles = StyleSheet.create({
         width: 200,
         height: 200,
     },
+    coinLayer: {
+        // default layer for coin
+        zIndex: 20, // above bottomSheet
+        elevation: 20,
+    },
+    coinLayerRaised: {
+        // used while the sheet is open; keeps coin above the sheet even if Android re-sorts
+        zIndex: 22,
+        elevation: 22,
+    },
     bottomArea: {
         flex: 1,
         alignItems: "center",
@@ -68,11 +78,13 @@ export const styles = StyleSheet.create({
     },
     choiceLabel: {
         color: "#91603A",
-        fontWeight: "600" },
+        fontWeight: "600"
+    },
     separator: {
         height: 1,
         backgroundColor: "#ffffff14",
-        marginVertical: 10 },
+        marginVertical: 10
+    },
     skipBtn: {
         alignSelf: "center",
         backgroundColor: "#B4CECC",
@@ -82,82 +94,86 @@ export const styles = StyleSheet.create({
     },
     skipBtnText: {
         color: "#2b2b2bff",
-        fontWeight: "700" },
+        fontWeight: "700"
+    },
     closeBtn: {
         alignSelf: "center",
         marginTop: 10,
-        padding: 8 },
+        padding: 8
+    },
     closeBtnText: {
         color: "#747678ff",
-        fontWeight: "600" },
+        fontWeight: "600"
+    },
 
     // Bottom Sheet Styles    
     bottomSheet: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(23, 24, 35, 0.85)", // ← semi-transparent white
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 10,
-    paddingBottom: 40,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: -3 },
-    shadowRadius: 6,
-    elevation: 10,
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: "rgba(23, 24, 35, 0.85)", // ← semi-transparent white
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingTop: 10,
+        paddingBottom: 40,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOpacity: 0.25,
+        shadowOffset: { width: 0, height: -3 },
+        shadowRadius: 6,
+        elevation: 10,
+        zIndex: 10,
     },
 
     sheetHeader: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
+        width: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
     },
 
     sheetHandle: {
-    width: 60,
-    height: 5,
-    backgroundColor: "#ccc",
-    borderRadius: 3,
-    marginVertical: 10,
+        width: 60,
+        height: 5,
+        backgroundColor: "#ccc",
+        borderRadius: 3,
+        marginVertical: 10,
     },
 
     sheetCloseBtn: {
-    position: "absolute",
-    right: 20,
-    top: 0,
-    padding: 10,
+        position: "absolute",
+        right: 20,
+        top: 0,
+        padding: 10,
     },
 
     sheetCloseIcon: {
-    fontSize: 18,
-    color: "#333",
+        fontSize: 18,
+        color: "#333",
     },
 
     infoCard: {
-    backgroundColor: "rgba(173, 216, 216, 0.7)",
-    borderRadius: 20,
-    padding: 15,
-    marginTop: 12,
+        backgroundColor: "rgba(173, 216, 216, 0.7)",
+        borderRadius: 20,
+        padding: 15,
+        marginTop: 12,
     },
 
     infoTitle: {
-    fontWeight: "100",
-    fontSize: 16,
-    marginBottom: 6,
+        fontWeight: "100",
+        fontSize: 16,
+        marginBottom: 6,
     },
 
     infoValue: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#000",
+        fontSize: 15,
+        lineHeight: 22,
+        color: "#000",
     },
 
-// Wallet Styles
-        walletTitle: {
+    // Wallet Styles
+    walletTitle: {
         fontSize: 28,
         fontWeight: "700",
         textAlign: "center",
@@ -221,6 +237,8 @@ export const styles = StyleSheet.create({
         justifyContent: "flex-start",
         paddingTop: 12,
         paddingHorizontal: 12,
+        zIndex: 30, // sits above coin
+        elevation: 30,
     },
     tutorialCard: {
         width: "100%",

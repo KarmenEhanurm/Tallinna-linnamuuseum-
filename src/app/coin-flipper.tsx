@@ -464,7 +464,10 @@ export default function Flipper() {
                     onGestureEvent={onPanGestureEvent}
                     onHandlerStateChange={onPanStateChange}
                 >
-                    <Animated.View>
+                    <Animated.View
+                    pointerEvents="box-none"
+                    style={[styles.coinLayer, isInfoVisible && styles.coinLayerRaised]}
+                    >
                     <Animated.Image
                         source={
                         coinSide === CoinSide.HEADS
