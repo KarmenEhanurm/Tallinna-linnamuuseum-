@@ -81,7 +81,8 @@ export default function Flipper() {
     const routeParams = useLocalSearchParams<{
         coinId?: string;
         openInfo?: string; // "1" to open
-        fromWallet?: string; // "info" (tapped coin) | "back" (swiped back)
+        fromWallet?: string; // "info" | "back"
+        tutorialDone?: string; // "1" means suppress overlay immediately
     }>();
 
     const { addCoin, coins } = useWallet();
@@ -172,6 +173,9 @@ export default function Flipper() {
     });
     const tapCounterRef = useRef(0);
 
+    // one-shot suppression if Wallet sent us here right after finishing the tutorial
+    const suppressFromWalletDone = routeParams?.tutorialDone === "1";
+
     // hydrate from persistent progress (merge, do not overwrite)
     useEffect(() => {
         loadProgress().then((stored) => {
@@ -179,28 +183,25 @@ export default function Flipper() {
         });
     }, []);
 
-    // If we came from the wallet screen as part of the tutorial, mark and persist
+    // If the user came from the wallet screen as part of the tutorial, normalize all pre-wallet steps
+    // and leave 'last' as false so "last" becomes the next visible step on Coin-Flipper.
     useEffect(() => {
         if (routeParams?.fromWallet) {
             setTutorial((prev) => {
-                const next = {
-                    ...prev,
+                const normalized: TutorialProgress = {
+                    tapTwice: true,
+                    zoomedIn: true,
+                    rotated: true,
+                    zoomedOut: true,
+                    doubleTapped: true,
+                    openedInfo: true,
                     swipeWallet: true,
-                    walletInfo: prev.walletInfo || routeParams.fromWallet === "info" || routeParams.fromWallet === "back",
+                    dragCoin: true,
+                    walletInfo: true,
+                    last: false, // important: do NOT complete it yet; we want to show it here
                 };
-                // Only unlock "last" if all pre-wallet steps are already completed
-                const preWalletDone =
-                    next.tapTwice &&
-                    next.zoomedIn &&
-                    next.rotated &&
-                    next.zoomedOut &&
-                    next.doubleTapped &&
-                    next.openedInfo &&
-                    next.swipeWallet &&
-                    next.walletInfo;
-                if (preWalletDone) next.last = true;
-                saveProgress(next);
-                return next;
+                saveProgress(normalized);
+                return { ...prev, ...normalized };
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -787,7 +788,7 @@ export default function Flipper() {
             )}
 
             {/* TUTORIAL OVERLAY */}
-            {tutHydrated && !tutorialDone && (
+            {tutHydrated && !tutorialDone && !suppressFromWalletDone && (
                 <FirstRunTutorial
                     progress={tutorial}
                     onSkipStep={(step) => {

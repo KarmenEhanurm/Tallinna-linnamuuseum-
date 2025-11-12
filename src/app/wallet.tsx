@@ -73,6 +73,9 @@ export default function Wallet() {
         last: false,
     }));
 
+    // allow forcing "last" to show on Wallet (when user skips walletInfo)
+    const [forceLastHere, setForceLastHere] = useState(false);
+
     // hydrate tutorial progress from storage and merge
     useEffect(() => {
         loadProgress().then((stored) => {
@@ -88,7 +91,18 @@ export default function Wallet() {
 
     const handleSkipStep = (step: TutorialStepKey) => {
         setTutorial((prev) => {
-            const next = { ...prev, [step]: true };
+            let next = { ...prev, [step]: true };
+
+            // If user skips walletInfo while staying on Wallet, we want to show "last" HERE.
+            // To reach "last", both wallet tasks must be completed.
+            if (step === "walletInfo") {
+                next = { ...next, dragCoin: true }; // ensure dragCoin is also done
+                setForceLastHere(true); // override overlay gating so "last" can show in Wallet
+                saveProgress({ walletInfo: true, dragCoin: true });
+                return next;
+            }
+
+            // default: persist the single step
             saveProgress({ [step]: true } as Partial<TutorialProgress>);
             return next;
         });
@@ -149,6 +163,13 @@ export default function Wallet() {
     // Show only first coin in the wallet (if exists)
     const coin = coins[0];
 
+    // Suppress the tutorial on Wallet when both wallet tasks are done,
+    // EXCEPT when forceLastHere is set (user skipped walletInfo → show "last" here).
+    const walletShouldShowOverlay =
+        tutHydrated &&
+        !tutorialDone &&
+        (forceLastHere || !(tutorial.dragCoin && tutorial.walletInfo));
+
     return (
         <View style={styles.container} {...screenSwipe.panHandlers}>
             {/* Screen title*/}
@@ -177,17 +198,22 @@ export default function Wallet() {
                         }}
                         onTapOpenInfo={() => {
                             // user chose the "walletInfo" path by tapping the coin
-                            // per spec: count the other branch as done too so it doesn't bounce back to dragCoin
+                            // Mark both wallet tasks as done so Wallet won’t show "last"
                             const upd = { walletInfo: true, dragCoin: true };
                             setTutorial((p) => ({ ...p, ...upd }));
                             saveProgress(upd);
+                            // navigate to flipper; it will show "last"
+                            router.replace({
+                                pathname: "/coin-flipper",
+                                params: { openInfo: "1", coinId: coin.id, fromWallet: "info" },
+                            });
                         }}
                     />
                 </View>
             )}
 
             {/* TUTORIAL OVERLAY (wallet steps) */}
-            {tutHydrated && !tutorialDone && (
+            {walletShouldShowOverlay && (
                 <FirstRunTutorial
                     progress={tutorial}
                     onSkipStep={handleSkipStep}
@@ -198,7 +224,12 @@ export default function Wallet() {
                         setTutorial((p) => ({ ...p, ...upd }));
                         saveProgress(upd);
                         await AsyncStorage.setItem("tutorial.done", "1"); // await before navigation
-                        router.replace("/coin-flipper");
+
+                        // IMPORTANT: pass a one-shot param so Coin-Flipper suppresses overlay immediately
+                        router.replace({
+                            pathname: "/coin-flipper",
+                            params: { tutorialDone: "1" },
+                        });
                     }}
                 />
             )}
@@ -286,11 +317,7 @@ function DraggableCoin({
                 const moved = Math.abs(gesture.dx) + Math.abs(gesture.dy);
                 if (dt < 250 && moved < 6) {
                     onTapOpenInfo();
-                    router.replace({
-                        pathname: "/coin-flipper",
-                        params: { openInfo: "1", coinId: coin.id, fromWallet: "info" },
-                    });
-                    return;
+                    return; // navigation is done in onTapOpenInfo above
                 }
 
                 // Compute and persist new absolute position
